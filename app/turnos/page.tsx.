@@ -1,7 +1,0 @@
-export default function TurnoPage() {
-  return (
-    <div style={{ padding: "40px", fontSize: "24px", fontFamily: "sans-serif" }}>
-      ¡Pantalla de Turnos Funcionando!
-    </div>
-  );
-}

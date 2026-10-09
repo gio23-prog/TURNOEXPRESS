@@ -236,8 +236,9 @@ export function FormPerfil({
     iniciar(async () => {
       const r = await guardarPerfil(d);
       setErr(r.errores ?? {});
-      setMsg({ ok: r.ok, texto: r.mensaje });
-      if (r.ok) router.refresh();
+      setMsg({ ok: r.ok, texto: r.ok ? "Perfil guardado. Te llevamos a las ofertas..." : r.mensaje });
+      // Con el perfil listo, el siguiente paso natural es buscar ofertas.
+      if (r.ok) router.push("/trabajos?perfil=listo");
     });
   }
 

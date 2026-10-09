@@ -92,6 +92,16 @@ export default async function Trabajos({
       <main className="mx-auto max-w-5xl px-4 py-6">
         <h1 className="text-2xl font-bold tracking-tight">Buscar ofertas</h1>
 
+        {sp.perfil === "listo" && sesion?.role === "trabajador" && (
+          <div role="status" className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
+            <p className="font-semibold">¡Tu perfil está listo!</p>
+            <p className="mt-1">
+              Ya puedes postular. Cada vez que postules, la empresa recibirá tu currículum y tus datos de contacto.{" "}
+              <Link href="/trabajador/perfil?paso=perfil" className="font-medium underline">Editar mi perfil</Link>
+            </p>
+          </div>
+        )}
+
         <nav aria-label="Atajos" className="mt-4 flex gap-2 overflow-x-auto pb-1">
           <Link
             href={enlace({ atajo: null, pagina: null })}

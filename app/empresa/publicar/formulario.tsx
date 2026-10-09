@@ -16,6 +16,7 @@ import {
 } from "@/lib/schemas/publicar";
 import { publicarTurno } from "./actions";
 import EditorPreguntas from "./preguntas";
+import { CIERRE_CONDICIONES, condicionesPara } from "@/lib/condiciones";
 import { NORMAS, TIPOS_CONTRATO, nombreContrato } from "@/lib/reglas-publicacion";
 
 const PASOS = ["Qué", "Cuándo y dónde", "Pago y condiciones", "Preguntas", "Contratación", "Vista previa"];
@@ -24,7 +25,7 @@ const inicial: Borrador = {
   categoria: "", titulo: "", descripcion: "", cupos: "1",
   fecha: "", inicio: "09:00", termino: "17:00", region: "", comuna: "", direccion: "", urgente: false,
   modoPago: "total", monto: "", pausas: "", vestimenta: "", alimentacion: false, transporte: false,
-  preguntas: [], respuestas: {}, contrato: "", declaraVeracidad: false, confirmaAdvertencia: false,
+  preguntas: [], respuestas: {}, contrato: "", declaraVeracidad: false, aceptaCondiciones: false, confirmaAdvertencia: false,
 };
 
 const clp = (n: number) =>
@@ -99,8 +100,11 @@ export default function FormularioPublicar({
   }
 
   function publicar() {
-    if (aviso && !d.confirmaAdvertencia) {
-      setErr({ confirmaAdvertencia: "Confirma que leíste la advertencia" });
+    const faltan: Record<string, string> = {};
+    if (aviso && !d.confirmaAdvertencia) faltan.confirmaAdvertencia = "Confirma que leíste la advertencia";
+    if (!d.aceptaCondiciones) faltan.aceptaCondiciones = "Debes aceptar las condiciones del empleador para publicar";
+    if (Object.keys(faltan).length) {
+      setErr(faltan);
       return;
     }
     iniciar(async () => {
@@ -361,6 +365,20 @@ export default function FormularioPublicar({
             ) : d.contrato === "honorarios" ? (
               <p className="text-sm text-stone-600">Sin indicios relevantes de relación laboral. El resultado final lo confirma el sistema al publicar.</p>
             ) : null}
+            <section aria-labelledby="titulo-condiciones" className="rounded-lg border border-stone-300 bg-white p-4 text-sm text-stone-800">
+              <h2 id="titulo-condiciones" className="text-base font-semibold text-stone-900">Condiciones del empleador</h2>
+              <p className="mt-1 text-stone-600">Al publicar este turno, me comprometo a:</p>
+              <ul className="mt-2 list-disc space-y-1 pl-5">
+                {condicionesPara(d.contrato).map((c) => <li key={c}>{c}</li>)}
+              </ul>
+              <p className="mt-3 text-stone-600">{CIERRE_CONDICIONES}</p>
+              <label className="mt-3 flex items-start gap-2 font-medium text-stone-900">
+                <input id="aceptaCondiciones" type="checkbox" className="mt-0.5 size-4" checked={d.aceptaCondiciones}
+                  onChange={(e) => set("aceptaCondiciones", e.target.checked)} />
+                Acepto las condiciones y me comprometo a cumplir la ley
+              </label>
+              {err.aceptaCondiciones && <p role="alert" className="mt-1 text-red-700">{err.aceptaCondiciones}</p>}
+            </section>
             {pagoAlto && (
               <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
                 El pago por hora ({clp(pago.valorHora)}) es inusualmente alto. Revisaremos el turno antes de publicarlo

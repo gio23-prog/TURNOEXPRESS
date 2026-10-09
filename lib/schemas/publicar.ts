@@ -127,6 +127,7 @@ export type Borrador = {
   respuestas: Partial<Record<PreguntaId, boolean>>;
   contrato: TipoContrato | "";
   declaraVeracidad: boolean;
+  aceptaCondiciones: boolean;
   confirmaAdvertencia: boolean;
 };
 
@@ -256,6 +257,7 @@ export function validarPaso(n: number, d: Borrador): Record<string, string> {
 
 export function validarTodo(d: Borrador): Record<string, string> {
   const e = { ...validarPaso(0, d), ...validarPaso(1, d), ...validarPaso(2, d), ...validarPaso(3, d), ...validarPaso(4, d) };
+  if (!d.aceptaCondiciones) e.aceptaCondiciones = "Debes aceptar las condiciones del empleador para publicar";
   if (requiereAviso(d) && !d.confirmaAdvertencia) {
     e.confirmaAdvertencia = "Confirma que leíste la advertencia";
   }

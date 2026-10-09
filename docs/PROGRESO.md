@@ -63,3 +63,9 @@ Proyecto Next.js, identidad visual, registro/ingreso con selección de rol, perf
 - Con 2 o más indicios, el formulario sugiere cambiar a contrato por obra o faena o a plazo fijo (un clic; se publica sin revisión).
 - Con boleta de honorarios se exige declarar que las respuestas describen cómo se hará realmente el trabajo.
 - Criterio: el formulario guía al contrato correcto; no induce respuestas para evitar la revisión.
+
+## Condiciones del empleador ✅ (09/10/2026)
+- Migración 11: cada turno guarda la versión y fecha de las condiciones aceptadas; la base no publica sin aceptación.
+- Texto en lib/condiciones.ts (BORRADOR para revisión legal): compromisos comunes + específicos para contrato de trabajo u honorarios.
+- 134 pruebas de base de datos pasando.
+- Pendiente de decisión: honorarios con 3+ indicios → ¿revisión antes de publicar (actual) o publicar y revisar después?

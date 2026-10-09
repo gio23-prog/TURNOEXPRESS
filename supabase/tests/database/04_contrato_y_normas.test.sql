@@ -3,6 +3,9 @@ begin;
 create extension if not exists pgtap with schema extensions;
 set search_path = public, extensions;
 select no_plan();
+-- Estas pruebas no tratan sobre las condiciones del empleador (ver 05): se dan por aceptadas.
+alter table public.job_posts alter column employer_terms_version set default 'test',
+                             alter column employer_terms_accepted_at set default now();
 
 insert into auth.users (id, email, raw_user_meta_data) values
  ('b3000000-0000-0000-0000-000000000001','n1@test.cl','{"role":"empresa","full_name":"Normas","accepted_terms":true,"accepted_privacy":true}');

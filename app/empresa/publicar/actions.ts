@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { empresaCompleta } from "@/lib/empresa";
+import { CONDICIONES_VERSION } from "@/lib/condiciones";
 import { PREGUNTAS_MODALIDAD, opcionesDe, rangoTurno, requiereAviso, validarTodo, type Borrador } from "@/lib/schemas/publicar";
 
 type Resultado = {
@@ -66,6 +67,9 @@ export async function publicarTurno(datos: Borrador): Promise<Resultado> {
       is_urgent: datos.urgente,
       contract_type: datos.contrato,
       labor_warning_ack_at: riesgoso && datos.confirmaAdvertencia ? new Date().toISOString() : null,
+      // Aceptación obligatoria de las condiciones del empleador (la base no publica sin ella).
+      employer_terms_version: CONDICIONES_VERSION,
+      employer_terms_accepted_at: new Date().toISOString(),
       ...respuestas,
     })
     .select("id")

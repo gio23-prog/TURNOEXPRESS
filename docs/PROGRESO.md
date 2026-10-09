@@ -39,3 +39,9 @@ Proyecto Next.js, identidad visual, registro/ingreso con selección de rol, perf
 - Aviso al redactar preguntas sobre temas que no se deben preguntar (edad, embarazo, religión, salud, etc.).
 - 102 pruebas de base de datos pasando (21 nuevas).
 - Pendiente: panel de empresa para ver postulantes y sus respuestas.
+
+## Registro de empresa en un paso ✅ (09/10/2026)
+- Migración 8: sector, n° de trabajadores (tramos Ley 20.416) y turnos estimados al mes; RUT de empresa único sin importar el formato; rut_empresa_disponible().
+- /registro → "Necesito personal": un solo formulario con cuenta (persona a cargo), empresa, dirección fiscal y representante legal ("Yo soy el representante legal"). Al terminar entra directo a publicar.
+- Los datos legales no se guardan en los metadatos de la cuenta; si Supabase exige confirmar el correo, se completan al primer ingreso.
+- 108 pruebas de base de datos pasando.

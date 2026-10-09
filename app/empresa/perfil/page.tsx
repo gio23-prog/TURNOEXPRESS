@@ -34,7 +34,7 @@ export default async function PerfilEmpresa({
   const [{ data: b }, { data: regs }, { data: coms }] = await Promise.all([
     supabase
       .from("business_profiles")
-      .select("trade_name, legal_name, rut, giro, business_type, description, comuna_id, fiscal_address, legal_rep_name, legal_rep_rut, contact_name, contact_position, contact_phone, contact_email")
+      .select("trade_name, legal_name, rut, giro, business_type, sector, employees_range, shifts_per_month, description, comuna_id, fiscal_address, legal_rep_name, legal_rep_rut, contact_name, contact_position, contact_phone, contact_email")
       .eq("user_id", sesion.id)
       .maybeSingle(),
     supabase.from("regions").select("id, name, sort_order").eq("active", true).order("sort_order"),
@@ -51,6 +51,9 @@ export default async function PerfilEmpresa({
     rutEmpresa: b?.rut ?? "",
     giro: b?.giro ?? "",
     rubro: b?.business_type ?? "",
+    sector: b?.sector ?? "",
+    tamano: b?.employees_range ?? "",
+    turnosMes: b?.shifts_per_month ?? "",
     descripcion: b?.description ?? "",
     region: regionActual ? String(regionActual) : "",
     comuna: b?.comuna_id ? String(b.comuna_id) : "",
@@ -73,7 +76,7 @@ export default async function PerfilEmpresa({
         <h1 className="text-2xl font-bold tracking-tight">Datos de tu empresa</h1>
         <p className="mt-1 text-stone-600">Todos los campos son obligatorios salvo los marcados como opcionales.</p>
         <div className="mt-6">
-          <FormularioEmpresa inicial={inicial} regiones={regiones} comunas={comunas}
+          <FormularioEmpresa modo="perfil" inicial={inicial} regiones={regiones} comunas={comunas}
             completar={sp.completar === "1"} destino={destino} />
         </div>
       </main>

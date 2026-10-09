@@ -2,13 +2,23 @@
 
 import { useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
-import { erroresEmpresa, type EmpresaInput } from "@/lib/schemas/empresa";
+import Link from "next/link";
+import {
+  erroresEmpresa,
+  SECTORES,
+  TAMANOS,
+  TURNOS_MES,
+  type EmpresaInput,
+  type RegistroEmpresaInput,
+} from "@/lib/schemas/empresa";
 import { formatearRut, limpiarRut, rutValido } from "@/lib/rut";
 import { guardarEmpresa } from "./actions";
+import { registrarEmpresa } from "@/app/registro/actions";
 
 type Opcion = { id: number; nombre: string };
 
-const campo = "w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 focus:outline-none focus:ring-2 focus:ring-teal-700";
+const campo =
+  "w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 focus:outline-none focus:ring-2 focus:ring-teal-700 disabled:bg-stone-100 disabled:text-stone-500";
 
 function Campo({ id, label, ayuda, error, children }: { id: string; label: string; ayuda?: string; error?: string; children: ReactNode }) {
   return (
@@ -31,22 +41,33 @@ function Seccion({ titulo, descripcion, children }: { titulo: string; descripcio
   );
 }
 
+type Datos = EmpresaInput & Partial<Pick<RegistroEmpresaInput, "password" | "consentimiento">>;
+
 export default function FormularioEmpresa({
-  inicial, regiones, comunas, completar, destino,
+  modo, inicial, regiones, comunas, completar = false, destino = null,
 }: {
+  modo: "registro" | "perfil";
   inicial: EmpresaInput;
   regiones: Opcion[];
   comunas: (Opcion & { regionId: number })[];
-  completar: boolean;
-  destino: string | null;
+  completar?: boolean;
+  destino?: string | null;
 }) {
+  const registro = modo === "registro";
   const router = useRouter();
-  const [d, setD] = useState<EmpresaInput>(inicial);
+  const [d, setD] = useState<Datos>(registro ? { ...inicial, password: "", consentimiento: false } : inicial);
+  const [soyRep, setSoyRep] = useState(false);
   const [err, setErr] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
+  const [verClave, setVerClave] = useState(false);
   const [pendiente, iniciar] = useTransition();
 
-  const set = (k: keyof EmpresaInput, v: string) => setD((p) => ({ ...p, [k]: v }));
+  const set = (k: keyof Datos, v: string | boolean) =>
+    setD((p) => {
+      const n = { ...p, [k]: v };
+      if (soyRep && k === "contactoNombre") n.repNombre = String(v);
+      return n;
+    });
   const comunasRegion = comunas.filter((c) => String(c.regionId) === d.region);
 
   // Formatea el RUT al salir del campo y avisa en el momento si el dígito verificador no calza.
@@ -59,7 +80,7 @@ export default function FormularioEmpresa({
 
   function enviar(e: FormEvent) {
     e.preventDefault();
-    const errores = erroresEmpresa(d);
+    const errores = erroresEmpresa(d as RegistroEmpresaInput, registro);
     setErr(errores);
     if (Object.keys(errores).length) {
       setMsg({ ok: false, texto: "Revisa los campos marcados." });
@@ -67,12 +88,66 @@ export default function FormularioEmpresa({
       return;
     }
     iniciar(async () => {
-      const r = await guardarEmpresa(d);
+      const r: { ok: boolean; mensaje: string; errores?: Record<string, string>; destino?: string } = registro
+        ? await registrarEmpresa(d as RegistroEmpresaInput)
+        : await guardarEmpresa(d);
       setErr(r.errores ?? {});
+      if (registro && r.ok && r.destino) {
+        window.location.assign(r.destino); // recarga completa para que el servidor lea la nueva sesión
+        return;
+      }
       setMsg({ ok: r.ok, texto: r.mensaje });
-      if (r.ok && destino) router.push(destino);
+      if (!registro && r.ok && destino) router.push(destino);
     });
   }
+
+  if (registro && msg?.ok) {
+    return (
+      <div className="rounded-2xl border border-stone-200 bg-white p-6">
+        <h2 className="text-xl font-bold">Revisa tu correo</h2>
+        <p className="mt-2 text-stone-700">{msg.texto}</p>
+        <Link href="/ingresar" className="mt-4 inline-block font-medium text-teal-800 underline">Ir a ingresar</Link>
+      </div>
+    );
+  }
+
+  const personaACargo = (
+    <Seccion
+      titulo={registro ? "Tus datos" : "Persona a cargo"}
+      descripcion={registro
+        ? "Serás la persona a cargo de la cuenta: recibirás los avisos y con este correo ingresarás."
+        : "Quien coordina los turnos. Recibe los avisos y es el contacto para soporte."}
+    >
+      <Campo id="contactoNombre" label="Nombre y apellidos" error={err.contactoNombre}>
+        <input id="contactoNombre" className={campo} autoComplete="name" value={d.contactoNombre} onChange={(e) => set("contactoNombre", e.target.value)} />
+      </Campo>
+      <Campo id="contactoCargo" label="Cargo" error={err.contactoCargo}>
+        <input id="contactoCargo" className={campo} value={d.contactoCargo} onChange={(e) => set("contactoCargo", e.target.value)} placeholder="Ej: Administrador del local" />
+      </Campo>
+      <Campo id="contactoTelefono" label="Teléfono" error={err.contactoTelefono}>
+        <div className="flex">
+          <span className="flex items-center rounded-l-lg border border-r-0 border-stone-300 bg-stone-100 px-3 text-stone-600">+56</span>
+          <input id="contactoTelefono" type="tel" inputMode="tel" autoComplete="tel-national" className={`${campo} rounded-l-none`}
+            value={d.contactoTelefono} onChange={(e) => set("contactoTelefono", e.target.value)} placeholder="9 1234 5678" />
+        </div>
+      </Campo>
+      <Campo id="contactoCorreo" label={registro ? "Correo de acceso" : "Correo"} error={err.contactoCorreo}>
+        <input id="contactoCorreo" type="email" autoComplete="email" className={campo} value={d.contactoCorreo} onChange={(e) => set("contactoCorreo", e.target.value)} />
+      </Campo>
+      {registro && (
+        <Campo id="password" label="Contraseña" ayuda="Mínimo 8 caracteres." error={err.password}>
+          <div className="relative">
+            <input id="password" type={verClave ? "text" : "password"} autoComplete="new-password" className={`${campo} pr-20`}
+              value={d.password ?? ""} onChange={(e) => set("password", e.target.value)} />
+            <button type="button" onClick={() => setVerClave((v) => !v)}
+              className="absolute inset-y-0 right-0 px-3 text-sm font-medium text-teal-800">
+              {verClave ? "Ocultar" : "Mostrar"}
+            </button>
+          </div>
+        </Campo>
+      )}
+    </Seccion>
+  );
 
   return (
     <form onSubmit={enviar} noValidate className="space-y-5">
@@ -83,6 +158,8 @@ export default function FormularioEmpresa({
         </p>
       )}
 
+      {registro && personaACargo}
+
       <Seccion titulo="Empresa" descripcion="Tal como está registrada en el Servicio de Impuestos Internos.">
         <Campo id="nombreComercial" label="Nombre comercial" ayuda="Es el que verán los trabajadores." error={err.nombreComercial}>
           <input id="nombreComercial" className={campo} value={d.nombreComercial} onChange={(e) => set("nombreComercial", e.target.value)} />
@@ -91,11 +168,29 @@ export default function FormularioEmpresa({
           <input id="razonSocial" className={campo} value={d.razonSocial} onChange={(e) => set("razonSocial", e.target.value)} placeholder="Ej: Inversiones Gastronómicas SpA" />
         </Campo>
         <Campo id="rutEmpresa" label="RUT de la empresa" error={err.rutEmpresa}>
-          <input id="rutEmpresa" className={campo} inputMode="text" autoComplete="off" value={d.rutEmpresa}
+          <input id="rutEmpresa" className={campo} autoComplete="off" value={d.rutEmpresa}
             onChange={(e) => set("rutEmpresa", e.target.value)} onBlur={() => alSalirRut("rutEmpresa")} placeholder="76.123.456-7" />
         </Campo>
         <Campo id="giro" label="Giro" ayuda="La actividad económica registrada en el SII." error={err.giro}>
           <input id="giro" className={campo} value={d.giro} onChange={(e) => set("giro", e.target.value)} placeholder="Ej: Restaurantes" />
+        </Campo>
+        <Campo id="sector" label="Sector" error={err.sector}>
+          <select id="sector" className={campo} value={d.sector} onChange={(e) => set("sector", e.target.value)}>
+            <option value="">Elige el sector</option>
+            {SECTORES.map((s) => <option key={s}>{s}</option>)}
+          </select>
+        </Campo>
+        <Campo id="tamano" label="N° de trabajadores" error={err.tamano}>
+          <select id="tamano" className={campo} value={d.tamano} onChange={(e) => set("tamano", e.target.value)}>
+            <option value="">Elige un tramo</option>
+            {TAMANOS.map((t) => <option key={t}>{t}</option>)}
+          </select>
+        </Campo>
+        <Campo id="turnosMes" label="Turnos que publicarías al mes" ayuda="Aproximado. Nos ayuda a recomendarte un plan." error={err.turnosMes}>
+          <select id="turnosMes" className={campo} value={d.turnosMes} onChange={(e) => set("turnosMes", e.target.value)}>
+            <option value="">Elige un tramo</option>
+            {TURNOS_MES.map((t) => <option key={t}>{t}</option>)}
+          </select>
         </Campo>
         <Campo id="rubro" label="Tipo de negocio (opcional)" error={err.rubro}>
           <input id="rubro" className={campo} value={d.rubro} onChange={(e) => set("rubro", e.target.value)} placeholder="Ej: Restaurante, hotel, bodega" />
@@ -128,8 +223,19 @@ export default function FormularioEmpresa({
       </Seccion>
 
       <Seccion titulo="Representante legal" descripcion="La persona que representa legalmente a la empresa.">
+        {registro && (
+          <label className="flex items-center gap-2 text-sm text-stone-800 sm:col-span-2">
+            <input id="soyRep" type="checkbox" className="size-4" checked={soyRep}
+              onChange={(e) => {
+                setSoyRep(e.target.checked);
+                if (e.target.checked) setD((p) => ({ ...p, repNombre: p.contactoNombre }));
+              }} />
+            Yo soy el representante legal
+          </label>
+        )}
         <Campo id="repNombre" label="Nombre completo" error={err.repNombre}>
-          <input id="repNombre" className={campo} autoComplete="off" value={d.repNombre} onChange={(e) => set("repNombre", e.target.value)} />
+          <input id="repNombre" className={campo} autoComplete="off" value={d.repNombre} disabled={soyRep}
+            onChange={(e) => set("repNombre", e.target.value)} />
         </Campo>
         <Campo id="repRut" label="RUT" error={err.repRut}>
           <input id="repRut" className={campo} autoComplete="off" value={d.repRut}
@@ -137,24 +243,18 @@ export default function FormularioEmpresa({
         </Campo>
       </Seccion>
 
-      <Seccion titulo="Persona a cargo" descripcion="Quien coordina los turnos. Recibirá los avisos y es el contacto para soporte.">
-        <Campo id="contactoNombre" label="Nombre completo" error={err.contactoNombre}>
-          <input id="contactoNombre" className={campo} autoComplete="name" value={d.contactoNombre} onChange={(e) => set("contactoNombre", e.target.value)} />
-        </Campo>
-        <Campo id="contactoCargo" label="Cargo" error={err.contactoCargo}>
-          <input id="contactoCargo" className={campo} value={d.contactoCargo} onChange={(e) => set("contactoCargo", e.target.value)} placeholder="Ej: Administrador del local" />
-        </Campo>
-        <Campo id="contactoTelefono" label="Teléfono" error={err.contactoTelefono}>
-          <div className="flex">
-            <span className="flex items-center rounded-l-lg border border-r-0 border-stone-300 bg-stone-100 px-3 text-stone-600">+56</span>
-            <input id="contactoTelefono" type="tel" inputMode="tel" autoComplete="tel-national" className={`${campo} rounded-l-none`}
-              value={d.contactoTelefono} onChange={(e) => set("contactoTelefono", e.target.value)} placeholder="9 1234 5678" />
-          </div>
-        </Campo>
-        <Campo id="contactoCorreo" label="Correo" error={err.contactoCorreo}>
-          <input id="contactoCorreo" type="email" autoComplete="email" className={campo} value={d.contactoCorreo} onChange={(e) => set("contactoCorreo", e.target.value)} />
-        </Campo>
-      </Seccion>
+      {!registro && personaACargo}
+
+      {registro && (
+        <div>
+          <label className="flex items-start gap-2 text-sm text-stone-700">
+            <input id="consentimiento" type="checkbox" className="mt-1 size-4" checked={!!d.consentimiento}
+              onChange={(e) => set("consentimiento", e.target.checked)} />
+            Acepto los términos de uso y la política de privacidad, y declaro que los datos de la empresa son verdaderos.
+          </label>
+          {err.consentimiento && <p role="alert" className="mt-1 text-sm text-red-700">{err.consentimiento}</p>}
+        </div>
+      )}
 
       {msg && (
         <p role={msg.ok ? "status" : "alert"} className={`rounded-lg p-3 text-sm font-medium ${msg.ok ? "bg-teal-50 text-teal-900" : "bg-red-50 text-red-800"}`}>
@@ -162,11 +262,11 @@ export default function FormularioEmpresa({
         </p>
       )}
 
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <button disabled={pendiente} className="rounded-lg bg-teal-700 px-6 py-3 font-semibold text-white hover:bg-teal-800 disabled:opacity-60">
-          {pendiente ? "Guardando..." : destino ? "Guardar y continuar" : "Guardar datos"}
-        </button>
-      </div>
+      <button disabled={pendiente} className="w-full rounded-lg bg-teal-700 px-6 py-3 font-semibold text-white hover:bg-teal-800 disabled:opacity-60 sm:w-auto">
+        {pendiente
+          ? registro ? "Creando cuenta..." : "Guardando..."
+          : registro ? "Crear cuenta de empresa" : destino ? "Guardar y continuar" : "Guardar datos"}
+      </button>
     </form>
   );
 }

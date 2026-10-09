@@ -14,6 +14,18 @@ const telefono = z
   .refine((v) => /^\d{9}$/.test(v), "Ingresa un teléfono de 9 dígitos, por ejemplo 9 1234 5678")
   .transform((v) => `+56${v}`);
 
+export const SECTORES = [
+  "Gastronomía y restaurantes", "Hotelería y turismo", "Eventos y producción", "Comercio y retail",
+  "Supermercados", "Logística y bodegaje", "Transporte", "Aseo y servicios generales", "Construcción",
+  "Oficinas y servicios profesionales", "Salud", "Educación", "Agroindustria", "Manufactura", "Otro",
+] as const;
+// Tramos de tamaño de empresa por número de trabajadores (Ley 20.416).
+export const TAMANOS = ["1 a 9", "10 a 49", "50 a 199", "200 o más"] as const;
+export const TURNOS_MES = ["1 a 5", "6 a 20", "21 a 50", "Más de 50"] as const;
+
+const deLista = <T extends readonly [string, ...string[]]>(lista: T, msg: string) =>
+  z.string().refine((v): v is T[number] => (lista as readonly string[]).includes(v), msg);
+
 export const empresaSchema = z.object({
   // Empresa
   nombreComercial: texto(2, 120, "Escribe el nombre con que te conocen los clientes"),
@@ -21,6 +33,9 @@ export const empresaSchema = z.object({
   rutEmpresa: rut("RUT de la empresa inválido. Revisa el dígito verificador"),
   giro: texto(3, 150, "Indica el giro registrado en el SII"),
   rubro: z.string().trim().max(60, "Máximo 60 caracteres"),
+  sector: deLista(SECTORES, "Elige el sector"),
+  tamano: deLista(TAMANOS, "Elige el número de trabajadores"),
+  turnosMes: deLista(TURNOS_MES, "Elige cuántos turnos publicarías al mes"),
   descripcion: z.string().trim().max(1500, "Máximo 1500 caracteres"),
   // Dirección fiscal
   region: z.string().regex(/^\d+$/, "Elige una región"),
@@ -38,8 +53,38 @@ export const empresaSchema = z.object({
 
 export type EmpresaInput = z.input<typeof empresaSchema>;
 
-export function erroresEmpresa(d: EmpresaInput): Record<string, string> {
-  const r = empresaSchema.safeParse(d);
+/** Registro en un paso: datos de la empresa + contraseña y consentimiento. El correo de la cuenta es el de la persona a cargo. */
+export const registroEmpresaSchema = empresaSchema.extend({
+  password: z.string().min(8, "Mínimo 8 caracteres").max(72, "Máximo 72 caracteres"),
+  consentimiento: z.boolean().refine((v) => v === true, "Debes aceptar los términos para continuar"),
+});
+export type RegistroEmpresaInput = z.input<typeof registroEmpresaSchema>;
+
+/** Convierte datos ya validados a columnas de business_profiles. */
+export function filaEmpresa(d: z.output<typeof empresaSchema>) {
+  return {
+    trade_name: d.nombreComercial,
+    legal_name: d.razonSocial,
+    rut: d.rutEmpresa,
+    giro: d.giro,
+    business_type: d.rubro || null,
+    sector: d.sector,
+    employees_range: d.tamano,
+    shifts_per_month: d.turnosMes,
+    description: d.descripcion || null,
+    comuna_id: Number(d.comuna),
+    fiscal_address: d.direccionFiscal,
+    legal_rep_name: d.repNombre,
+    legal_rep_rut: d.repRut,
+    contact_name: d.contactoNombre,
+    contact_position: d.contactoCargo,
+    contact_phone: d.contactoTelefono,
+    contact_email: d.contactoCorreo,
+  };
+}
+
+export function erroresEmpresa(d: EmpresaInput | RegistroEmpresaInput, registro = false): Record<string, string> {
+  const r = (registro ? registroEmpresaSchema : empresaSchema).safeParse(d);
   if (r.success) return {};
   const out: Record<string, string> = {};
   for (const i of r.error.issues) out[String(i.path[0])] ??= i.message;

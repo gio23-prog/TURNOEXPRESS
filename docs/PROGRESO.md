@@ -57,3 +57,9 @@ Proyecto Next.js, identidad visual, registro/ingreso con selección de rol, perf
   sin requisitos discriminatorios, sin títulos en mayúsculas ni genéricos. Un puesto y una ubicación por publicación (por diseño).
 - La empresa ve el motivo cuando su turno queda en revisión; el trabajador ve el tipo de contratación en el detalle.
 - 130 pruebas de base de datos pasando.
+
+## Guía de contratación en el formulario ✅ (09/10/2026)
+- Cada pregunta de modalidad tiene una ayuda con ejemplos de "Sí" y "No".
+- Con 2 o más indicios, el formulario sugiere cambiar a contrato por obra o faena o a plazo fijo (un clic; se publica sin revisión).
+- Con boleta de honorarios se exige declarar que las respuestas describen cómo se hará realmente el trabajo.
+- Criterio: el formulario guía al contrato correcto; no induce respuestas para evitar la revisión.

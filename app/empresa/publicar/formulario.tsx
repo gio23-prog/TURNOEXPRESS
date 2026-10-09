@@ -24,7 +24,7 @@ const inicial: Borrador = {
   categoria: "", titulo: "", descripcion: "", cupos: "1",
   fecha: "", inicio: "09:00", termino: "17:00", region: "", comuna: "", direccion: "", urgente: false,
   modoPago: "total", monto: "", pausas: "", vestimenta: "", alimentacion: false, transporte: false,
-  preguntas: [], respuestas: {}, contrato: "", confirmaAdvertencia: false,
+  preguntas: [], respuestas: {}, contrato: "", declaraVeracidad: false, confirmaAdvertencia: false,
 };
 
 const clp = (n: number) =>
@@ -253,7 +253,7 @@ export default function FormularioPublicar({
                     className={`flex cursor-pointer gap-3 rounded-lg border p-3 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-teal-700 ${
                       d.contrato === t.id ? "border-teal-700 bg-teal-50" : "border-stone-300 bg-white"}`}>
                     <input id={`contrato-${t.id}`} type="radio" name="contrato" className="mt-1" checked={d.contrato === t.id}
-                      onChange={() => setD((p) => ({ ...p, contrato: t.id, confirmaAdvertencia: false }))} />
+                      onChange={() => setD((p) => ({ ...p, contrato: t.id, confirmaAdvertencia: false, declaraVeracidad: false }))} />
                     <span>
                       <span className="block font-medium text-stone-900">{t.nombre}</span>
                       <span className="block text-sm text-stone-600">{t.ayuda}</span>
@@ -274,16 +274,47 @@ export default function FormularioPublicar({
             {d.contrato === "honorarios" && (
             <>
             <p className="text-sm text-stone-600">
-              Con boleta de honorarios, la persona presta un servicio independiente. Estas preguntas nos ayudan a confirmar
-              que no se trata en la práctica de una relación laboral. Si hay 3 o más indicios, revisamos el turno antes de publicarlo.
+              Con boleta de honorarios, la persona presta un servicio independiente. Responde según cómo se hará realmente
+              el trabajo: así te indicamos el tipo de contrato que corresponde.
             </p>
             {PREGUNTAS_MODALIDAD.map((p) => (
               <div key={p.id} className="rounded-lg border border-stone-200 bg-white p-3">
                 <p className="text-stone-900">{p.texto}</p>
+                <p className="mt-1 text-sm text-stone-500">{p.ayuda}</p>
                 <SiNo valor={d.respuestas[p.id]} onChange={(v) => set("respuestas", { ...d.respuestas, [p.id]: v })} />
                 {err[p.id] && <p role="alert" className="mt-1 text-sm text-red-700">{err[p.id]}</p>}
               </div>
             ))}
+
+            {riesgo !== "bajo" && (
+              <div role="status" className="rounded-lg border border-teal-300 bg-teal-50 p-4 text-sm text-teal-950">
+                <p className="font-semibold">Este turno se parece a un trabajo bajo tu dirección</p>
+                <p className="mt-1">
+                  Cuando hay supervisión, horario fijo o instrucciones durante el turno, lo que corresponde es un contrato de
+                  trabajo. Con contrato el turno <strong>se publica de inmediato, sin revisión</strong>.
+                </p>
+                <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+                  {(["por_obra", "plazo_fijo"] as const).map((c) => (
+                    <button key={c} type="button"
+                      onClick={() => setD((p) => ({ ...p, contrato: c, respuestas: {}, declaraVeracidad: false, confirmaAdvertencia: false }))}
+                      className="rounded-lg bg-teal-700 px-4 py-2.5 font-medium text-white hover:bg-teal-800">
+                      Cambiar a {nombreContrato(c).toLowerCase()}
+                    </button>
+                  ))}
+                </div>
+                {riesgo === "alto" && (
+                  <p className="mt-3 text-teal-900">Si mantienes la boleta de honorarios, el equipo revisará el turno antes de publicarlo.</p>
+                )}
+              </div>
+            )}
+
+            <label className="flex items-start gap-2 text-sm text-stone-800">
+              <input id="declaraVeracidad" type="checkbox" className="mt-1 size-4" checked={d.declaraVeracidad}
+                onChange={(e) => set("declaraVeracidad", e.target.checked)} />
+              Declaro que estas respuestas describen cómo se hará realmente el trabajo. Responder distinto a la realidad
+              para evitar la revisión puede constituir una simulación de la relación laboral.
+            </label>
+            {err.declaraVeracidad && <p role="alert" className="text-sm text-red-700">{err.declaraVeracidad}</p>}
             </>
             )}
           </>

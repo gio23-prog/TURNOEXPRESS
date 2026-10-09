@@ -10,11 +10,31 @@ export type Comuna = { id: number; nombre: string; regionId: number };
 // "indicaSi" = la respuesta que suma un indicio de relación laboral.
 // Es solo orientativo: el riesgo oficial lo calcula la base de datos al guardar.
 export const PREGUNTAS_MODALIDAD = [
-  { id: "q_autonomy", texto: "¿La persona podrá organizar por sí misma cómo hace el trabajo?", indicaSi: false },
-  { id: "q_direct_supervision", texto: "¿Alguien de tu equipo la supervisará directamente durante el turno?", indicaSi: true },
-  { id: "q_imposed_schedule", texto: "¿Tú fijas el horario exacto de entrada y salida?", indicaSi: true },
-  { id: "q_continuous_instructions", texto: "¿Recibirá instrucciones continuas mientras trabaja?", indicaSi: true },
-  { id: "q_core_recurring", texto: "¿Es una tarea habitual de tu negocio que se repetirá con frecuencia?", indicaSi: true },
+  {
+    id: "q_autonomy", indicaSi: false,
+    texto: "¿La persona podrá organizar por sí misma cómo hace el trabajo?",
+    ayuda: "Sí: decide cómo y en qué orden hacerlo, con sus propios métodos (ej.: armador de muebles con sus herramientas). No: tu equipo le indica cómo hacerlo (ej.: garzón que sigue las indicaciones del encargado).",
+  },
+  {
+    id: "q_direct_supervision", indicaSi: true,
+    texto: "¿Alguien de tu equipo la supervisará directamente durante el turno?",
+    ayuda: "Sí: un jefe de turno o encargado revisa y corrige su trabajo mientras lo hace. No: solo revisas el resultado al final.",
+  },
+  {
+    id: "q_imposed_schedule", indicaSi: true,
+    texto: "¿Tú fijas el horario exacto de entrada y salida?",
+    ayuda: "Sí: debe llegar y salir a una hora que tú defines (ej.: de 18:00 a 00:00). No: solo hay un plazo de entrega (ej.: \"terminar antes del viernes\").",
+  },
+  {
+    id: "q_continuous_instructions", indicaSi: true,
+    texto: "¿Recibirá instrucciones continuas mientras trabaja?",
+    ayuda: "Sí: le irán diciendo qué hacer durante el turno. No: recibe el encargo al inicio y lo ejecuta a su manera.",
+  },
+  {
+    id: "q_core_recurring", indicaSi: true,
+    texto: "¿Es una tarea habitual de tu negocio que se repetirá con frecuencia?",
+    ayuda: "Sí: es parte del día a día del negocio (ej.: garzones en un restaurante, cajeros en una tienda). No: es un servicio puntual o especializado (ej.: reparar una máquina).",
+  },
 ] as const;
 
 export type PreguntaId = (typeof PREGUNTAS_MODALIDAD)[number]["id"];
@@ -106,6 +126,7 @@ export type Borrador = {
   preguntas: PreguntaEmpleador[];
   respuestas: Partial<Record<PreguntaId, boolean>>;
   contrato: TipoContrato | "";
+  declaraVeracidad: boolean;
   confirmaAdvertencia: boolean;
 };
 
@@ -211,6 +232,7 @@ export function validarPaso(n: number, d: Borrador): Record<string, string> {
     // El cuestionario de modalidad solo aplica a la boleta de honorarios.
     if (d.contrato === "honorarios") {
       for (const p of PREGUNTAS_MODALIDAD) if (d.respuestas[p.id] === undefined) e[p.id] = "Responde sí o no";
+      if (!d.declaraVeracidad) e.declaraVeracidad = "Confirma que las respuestas describen cómo se hará realmente el trabajo";
     }
     return e;
   }

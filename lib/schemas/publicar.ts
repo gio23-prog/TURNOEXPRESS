@@ -30,6 +30,7 @@ export type PreguntaEmpleador = {
 };
 
 export const MAX_PREGUNTAS = 5;
+export const MAX_LARGO_PREGUNTA = 500;
 
 export const SUGERENCIAS_PREGUNTAS: Omit<PreguntaEmpleador, "obligatoria" | "excluyentes">[] = [
   { texto: "¿Tienes experiencia en este tipo de trabajo?", tipo: "si_no", opciones: "" },
@@ -67,7 +68,7 @@ export function validarPreguntas(ps: PreguntaEmpleador[]): Record<string, string
     const k = `pregunta-${i}`;
     const t = p.texto.trim();
     if (t.length < 5) e[k] = "Escribe la pregunta (mínimo 5 caracteres)";
-    else if (t.length > 200) e[k] = "Máximo 200 caracteres";
+    else if (t.length > MAX_LARGO_PREGUNTA) e[k] = `Máximo ${MAX_LARGO_PREGUNTA} caracteres`;
     else if (p.tipo === "opcion") {
       const ops = opcionesDe(p);
       if (ops.length < 2 || ops.length > 6) e[k] = "Escribe entre 2 y 6 opciones, una por línea";

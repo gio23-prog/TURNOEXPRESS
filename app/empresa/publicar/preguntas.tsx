@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  MAX_LARGO_PREGUNTA,
   MAX_PREGUNTAS,
   SUGERENCIAS_PREGUNTAS,
   opcionesDe,
@@ -56,8 +57,11 @@ export default function EditorPreguntas({
 
             <label className="block">
               <span className="mb-1 block text-sm font-medium text-stone-700">Pregunta</span>
-              <input id={`pregunta-${i}`} className={campo} maxLength={200} value={p.texto}
+              <textarea id={`pregunta-${i}`} rows={2} className={campo} maxLength={MAX_LARGO_PREGUNTA} value={p.texto}
                 onChange={(e) => cambiar(i, { texto: e.target.value })} placeholder="Ej: ¿Tienes experiencia como barista?" />
+              <span className="mt-1 block text-right text-xs text-stone-500 tabular-nums">
+                {p.texto.length}/{MAX_LARGO_PREGUNTA}
+              </span>
             </label>
 
             {sensible && (

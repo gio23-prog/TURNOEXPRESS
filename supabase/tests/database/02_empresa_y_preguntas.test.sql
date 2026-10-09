@@ -55,6 +55,10 @@ insert into job_questions (job_id, position, prompt, kind, required) values
 select set_config('t.q1', (select id::text from job_questions where job_id = current_setting('t.job')::uuid and position = 1), true);
 select set_config('t.q2', (select id::text from job_questions where job_id = current_setting('t.job')::uuid and position = 2), true);
 
+select lives_ok($$ insert into job_questions (job_id, position, prompt, kind, required)
+  values (current_setting('t.job')::uuid, 4, repeat('a', 499) || '?', 'texto', false) $$, 'Acepta preguntas de 500 caracteres');
+select throws_ok($$ insert into job_questions (job_id, position, prompt, kind)
+  values (current_setting('t.job')::uuid, 5, repeat('a', 501), 'texto') $$, '23514', null, 'Rechaza preguntas de más de 500 caracteres');
 select is(publish_job(current_setting('t.job')::uuid)::text, 'publicada', 'Con datos completos se publica');
 select throws_ok($$ insert into job_questions (job_id, position, prompt, kind)
   values (current_setting('t.job')::uuid, 4, 'Pregunta tardía', 'texto') $$,
@@ -65,7 +69,7 @@ select is((select count(*)::int from my_job_questions(current_setting('t.job')::
 -- ============================================================ Trabajadores
 set local request.jwt.claim.sub = 'a1000000-0000-0000-0000-000000000001';
 insert into worker_profiles (user_id, display_name) values (auth.uid(), 'Trabajador U.');
-select is((select count(*)::int from job_questions where job_id = current_setting('t.job')::uuid), 3, 'El trabajador ve las preguntas');
+select is((select count(*)::int from job_questions where job_id = current_setting('t.job')::uuid), 4, 'El trabajador ve las preguntas');
 select throws_ok($$ select disqualifying from job_questions $$, '42501', null, 'El trabajador no puede ver las respuestas excluyentes');
 select throws_ok($$ select * from my_job_questions(current_setting('t.job')::uuid) $$, 'P0002', null,
   'El trabajador no accede a las preguntas completas');

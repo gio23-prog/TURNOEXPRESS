@@ -1,36 +1,31 @@
 import { z } from "zod";
 
-// TODO: reemplazar por consultas a las tablas `categories` y `comunas` de Supabase.
-export const CATEGORIAS = [
-  "Garzón/a",
-  "Cocina",
-  "Barra",
-  "Aseo",
-  "Bodega y reposición",
-  "Atención en tienda",
-  "Evento",
-] as const;
-export const COMUNAS = ["Santiago", "Providencia", "Las Condes", "Ñuñoa", "Maipú", "La Florida"] as const;
+// Las categorías y comunas se cargan desde Supabase (tablas `categories` y `comunas`).
+export type Categoria = { id: number; nombre: string; subcategorias: { id: number; nombre: string }[] };
+export type Comuna = { id: number; nombre: string };
 
-// TODO: alinear estas 5 preguntas con CUMPLIMIENTO_LEGAL.md. La base de datos es la
-// autoridad: el riesgo real debe recalcularlo la RPC, esto es solo orientativo.
+// Deben coincidir con las columnas q_* de job_posts y con compute_labor_risk() en la base.
+// "indicaSi" = la respuesta que suma un indicio de relación laboral.
+// Es solo orientativo: el riesgo oficial lo calcula la base de datos al guardar.
 export const PREGUNTAS_MODALIDAD = [
-  { id: "horarioFijo", texto: "¿La empresa fija el horario exacto de trabajo?" },
-  { id: "instrucciones", texto: "¿Trabajará bajo instrucciones o supervisión directa de la empresa?" },
-  { id: "equipamiento", texto: "¿La empresa entrega uniforme, herramientas o equipo?" },
-  { id: "reemplazo", texto: "¿El turno reemplaza a alguien del equipo que no puede asistir?" },
-  { id: "repetido", texto: "¿Se repetirá con la misma persona más de una vez?" },
+  { id: "q_autonomy", texto: "¿La persona podrá organizar por sí misma cómo hace el trabajo?", indicaSi: false },
+  { id: "q_direct_supervision", texto: "¿Alguien de tu equipo la supervisará directamente durante el turno?", indicaSi: true },
+  { id: "q_imposed_schedule", texto: "¿Tú fijas el horario exacto de entrada y salida?", indicaSi: true },
+  { id: "q_continuous_instructions", texto: "¿Recibirá instrucciones continuas mientras trabaja?", indicaSi: true },
+  { id: "q_core_recurring", texto: "¿Es una tarea habitual de tu negocio que se repetirá con frecuencia?", indicaSi: true },
 ] as const;
+
+export type PreguntaId = (typeof PREGUNTAS_MODALIDAD)[number]["id"];
 
 export type Borrador = {
-  categoria: string;
+  categoria: string; // id de subcategoría
   titulo: string;
   descripcion: string;
   cupos: string;
-  fecha: string;
-  inicio: string;
-  termino: string;
-  comuna: string;
+  fecha: string; // AAAA-MM-DD (input date)
+  inicio: string; // HH:MM
+  termino: string; // HH:MM
+  comuna: string; // id de comuna
   direccion: string;
   urgente: boolean;
   modoPago: "total" | "hora";
@@ -39,14 +34,15 @@ export type Borrador = {
   vestimenta: string;
   alimentacion: boolean;
   transporte: boolean;
-  respuestas: Record<string, boolean | undefined>;
+  respuestas: Partial<Record<PreguntaId, boolean>>;
   confirmaAdvertencia: boolean;
 };
 
 const hora = z.string().regex(/^\d{2}:\d{2}$/, "Ingresa una hora válida");
+const idNumerico = (msg: string) => z.string().regex(/^\d+$/, msg);
 
 export const paso1 = z.object({
-  categoria: z.string().min(1, "Elige una categoría"),
+  categoria: idNumerico("Elige una categoría"),
   titulo: z.string().trim().min(5, "Escribe un título de al menos 5 caracteres").max(80, "Máximo 80 caracteres"),
   descripcion: z.string().trim().min(20, "Describe el trabajo en al menos 20 caracteres").max(1000, "Máximo 1000 caracteres"),
   cupos: z.number().int("Debe ser un número entero").min(1, "Mínimo 1 cupo").max(20, "Máximo 20 cupos"),
@@ -54,13 +50,17 @@ export const paso1 = z.object({
 
 export const paso2 = z
   .object({
-    fecha: z.string().min(1, "Elige una fecha"),
+    fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Elige una fecha"),
     inicio: hora,
     termino: hora,
-    comuna: z.string().min(1, "Elige una comuna"),
-    direccion: z.string().trim().min(5, "Escribe la dirección exacta"),
+    comuna: idNumerico("Elige una comuna"),
+    direccion: z.string().trim().min(5, "Escribe la dirección exacta").max(200, "Máximo 200 caracteres"),
   })
-  .refine((d) => d.inicio !== d.termino, { message: "El término no puede ser igual al inicio", path: ["termino"] });
+  .refine((d) => d.inicio !== d.termino, { message: "El término no puede ser igual al inicio", path: ["termino"] })
+  .refine((d) => new Date(horaChileAISO(d.fecha, d.inicio)).getTime() > Date.now() + 30 * 60_000, {
+    message: "El turno debe comenzar al menos 30 minutos desde ahora",
+    path: ["inicio"],
+  });
 
 export const paso3 = z.object({
   monto: z.number().int("Sin decimales").min(1, "Ingresa un monto").max(10_000_000, "Monto demasiado alto"),
@@ -74,7 +74,7 @@ export function calcularDuracion(inicio: string, termino: string): number {
   const [hi, mi] = inicio.split(":").map(Number);
   const [ht, mt] = termino.split(":").map(Number);
   if ([hi, mi, ht, mt].some((n) => Number.isNaN(n))) return 0;
-  return (((ht * 60 + mt) - (hi * 60 + mi)) + 1440) % 1440; // si cruza medianoche, suma un día (máx. 24 h)
+  return (ht * 60 + mt - (hi * 60 + mi) + 1440) % 1440; // si cruza medianoche, termina al día siguiente
 }
 
 export function calcularPago(d: Pick<Borrador, "modoPago" | "monto" | "inicio" | "termino">) {
@@ -86,9 +86,38 @@ export function calcularPago(d: Pick<Borrador, "modoPago" | "monto" | "inicio" |
     : { total: Math.round(monto * horas), valorHora: monto };
 }
 
+/** Misma regla que compute_labor_risk() en la base: 3+ indicios = alto, 2 = medio. */
 export function nivelRiesgo(r: Borrador["respuestas"]): "bajo" | "medio" | "alto" {
-  const si = PREGUNTAS_MODALIDAD.filter((p) => r[p.id] === true).length;
-  return si >= 3 ? "alto" : si === 2 ? "medio" : "bajo";
+  const indicios = PREGUNTAS_MODALIDAD.filter((p) => r[p.id] !== undefined && r[p.id] === p.indicaSi).length;
+  return indicios >= 3 ? "alto" : indicios === 2 ? "medio" : "bajo";
+}
+
+/** La base exige confirmar la advertencia en riesgo medio y alto. */
+export const requiereAviso = (r: Borrador["respuestas"]) => nivelRiesgo(r) !== "bajo";
+
+function offsetSantiago(fecha: Date): number {
+  const nombre =
+    new Intl.DateTimeFormat("en-US", { timeZone: "America/Santiago", timeZoneName: "longOffset" })
+      .formatToParts(fecha)
+      .find((p) => p.type === "timeZoneName")?.value ?? "GMT";
+  const m = nombre.match(/GMT([+-])(\d{2}):(\d{2})/);
+  return m ? (m[1] === "-" ? -1 : 1) * (Number(m[2]) * 60 + Number(m[3])) : 0;
+}
+
+/** Fecha y hora de Chile (con horario de verano) a ISO UTC. */
+export function horaChileAISO(fecha: string, horaTxt: string, diasExtra = 0): string {
+  const [y, mo, d] = fecha.split("-").map(Number);
+  const [h, mi] = horaTxt.split(":").map(Number);
+  const local = Date.UTC(y, mo - 1, d + diasExtra, h, mi);
+  let t = local - offsetSantiago(new Date(local)) * 60_000;
+  t = local - offsetSantiago(new Date(t)) * 60_000;
+  return new Date(t).toISOString();
+}
+
+/** Inicio y término en ISO; si el término es menor que el inicio, cruza medianoche. */
+export function rangoTurno(d: Pick<Borrador, "fecha" | "inicio" | "termino">) {
+  const cruza = d.termino <= d.inicio;
+  return { inicio: horaChileAISO(d.fecha, d.inicio), termino: horaChileAISO(d.fecha, d.termino, cruza ? 1 : 0) };
 }
 
 function aMapa(issues: { path: PropertyKey[]; message: string }[]) {
@@ -118,7 +147,7 @@ export function validarPaso(n: number, d: Borrador): Record<string, string> {
 
 export function validarTodo(d: Borrador): Record<string, string> {
   const e = { ...validarPaso(0, d), ...validarPaso(1, d), ...validarPaso(2, d), ...validarPaso(3, d) };
-  if (nivelRiesgo(d.respuestas) === "alto" && !d.confirmaAdvertencia) {
+  if (requiereAviso(d.respuestas) && !d.confirmaAdvertencia) {
     e.confirmaAdvertencia = "Confirma que leíste la advertencia";
   }
   return e;

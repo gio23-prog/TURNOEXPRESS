@@ -20,9 +20,9 @@ export async function registrar(datos: RegistroInput): Promise<Resultado> {
     password,
     options: {
       emailRedirectTo: `${origin}/auth/callback`,
-      // TODO: estos nombres y valores deben coincidir con lo que lee tu trigger de alta
-      // en la migración (rol y consentimiento). Ajusta si tu trigger espera otros.
-      data: { full_name: nombre, role: tipo, consent: true, consent_at: new Date().toISOString() },
+      // Deben coincidir con lo que exige handle_new_user() en la migración core:
+      // sin accepted_terms y accepted_privacy en true, la base rechaza el registro.
+      data: { full_name: nombre, role: tipo, accepted_terms: true, accepted_privacy: true },
     },
   });
 

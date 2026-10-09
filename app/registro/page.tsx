@@ -27,6 +27,11 @@ export default function Registro() {
     iniciar(async () => {
       const r = await registrar(d);
       setErr(r.errores ?? {});
+      if (r.ok && r.destino) {
+        // Recarga completa para que el servidor lea la nueva sesión.
+        window.location.assign(r.destino);
+        return;
+      }
       setMsg({ ok: r.ok, texto: r.mensaje });
     });
   }

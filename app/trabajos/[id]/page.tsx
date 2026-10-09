@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { clp, diaRelativo, duracion, esUUID, fecha, hora } from "@/lib/formato";
 import Encabezado, { obtenerSesion } from "@/app/componentes/encabezado";
-import { BotonRetirar, FormularioPostular } from "./postular";
+import { BotonRetirar, FormularioPostular, type PreguntaPublica } from "./postular";
 
 const ESTADO_POSTULACION: Record<string, string> = {
   pendiente: "Postulación enviada. La empresa aún no la revisa.",
@@ -62,14 +62,16 @@ export default async function DetalleTurno({ params }: { params: Promise<{ id: s
     .maybeSingle<Record<string, any>>(); // eslint-disable-line @typescript-eslint/no-explicit-any
   if (!t) notFound();
 
-  const [catRes, negocioRes, postRes, cruceRes] = await Promise.all([
+  const [catRes, negocioRes, postRes, cruceRes, pregRes] = await Promise.all([
     supabase.from("categories").select("name, parent_id").eq("id", t.category_id).single(),
     supabase.from("v_public_businesses").select("trade_name, verification_status, rating_avg, rating_count").eq("user_id", t.business_id).maybeSingle(),
     sesion.role === "trabajador"
       ? supabase.from("applications").select("id, status").eq("job_id", id).eq("worker_id", sesion.id).maybeSingle()
       : Promise.resolve({ data: null }),
     sesion.role === "trabajador" ? supabase.rpc("my_overlapping_bookings", { p_job: id }) : Promise.resolve({ data: [] }),
+    supabase.from("job_questions").select("id, position, prompt, kind, options, required").eq("job_id", id).order("position"),
   ]);
+  const preguntas = (pregRes.data ?? []) as PreguntaPublica[];
   const padre = catRes.data?.parent_id
     ? (await supabase.from("categories").select("name").eq("id", catRes.data.parent_id).single()).data?.name
     : null;
@@ -186,7 +188,7 @@ export default async function DetalleTurno({ params }: { params: Promise<{ id: s
                       Ya tienes un turno confirmado que se cruza con este horario. Puedes postular, pero no podrás aceptar ambos.
                     </p>
                   )}
-                  <FormularioPostular jobId={id} horario={horario} />
+                  <FormularioPostular jobId={id} horario={horario} preguntas={preguntas} />
                 </>
               ) : (
                 <p className="text-sm text-stone-600">Este turno ya no recibe postulaciones.</p>

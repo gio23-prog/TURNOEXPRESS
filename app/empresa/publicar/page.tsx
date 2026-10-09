@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { empresaCompleta, RUTA_COMPLETAR_EMPRESA } from "@/lib/empresa";
 import type { Categoria, Comuna, Region } from "@/lib/schemas/publicar";
 import FormularioPublicar from "./formulario";
 
@@ -20,6 +21,8 @@ export default async function PublicarTurnoPage() {
       </main>
     );
   }
+
+  if (!(await empresaCompleta(supabase, auth.user.id))) redirect(RUTA_COMPLETAR_EMPRESA);
 
   const [{ data: cats, error: errCats }, { data: regs, error: errRegs }, { data: coms, error: errComs }] = await Promise.all([
     supabase.from("categories").select("id, name, parent_id, sort_order").eq("active", true).order("sort_order").order("name"),

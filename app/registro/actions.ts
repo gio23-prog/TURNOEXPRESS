@@ -2,9 +2,10 @@
 
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { RUTA_COMPLETAR_EMPRESA } from "@/lib/empresa";
 import { registroSchema, erroresPorCampo, type RegistroInput } from "@/lib/schemas/auth";
 
-type Resultado = { ok: boolean; mensaje: string; errores?: Record<string, string> };
+type Resultado = { ok: boolean; mensaje: string; errores?: Record<string, string>; destino?: string };
 
 export async function registrar(datos: RegistroInput): Promise<Resultado> {
   const parsed = registroSchema.safeParse(datos);
@@ -15,7 +16,7 @@ export async function registrar(datos: RegistroInput): Promise<Resultado> {
   const origin = (await headers()).get("origin") ?? "";
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signUp({
+  const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
@@ -28,6 +29,10 @@ export async function registrar(datos: RegistroInput): Promise<Resultado> {
 
   if (error) {
     return { ok: false, mensaje: "No pudimos crear la cuenta. Revisa los datos o intenta con otro correo." };
+  }
+  // Si Supabase no exige confirmar el correo, la sesión queda abierta y seguimos al siguiente paso.
+  if (data.session) {
+    return { ok: true, mensaje: "Cuenta creada.", destino: tipo === "empresa" ? RUTA_COMPLETAR_EMPRESA : "/trabajos" };
   }
   return { ok: true, mensaje: "Cuenta creada. Revisa tu correo para confirmarla y luego ingresa." };
 }

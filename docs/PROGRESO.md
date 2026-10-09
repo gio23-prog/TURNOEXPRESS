@@ -31,3 +31,11 @@ Proyecto Next.js, identidad visual, registro/ingreso con selección de rol, perf
 - /trabajos: búsqueda con filtros (región, comuna, rubro, fecha, pago mínimo por hora, texto), atajos (hoy, mañana, fin de semana, pocas horas, jornada completa), orden y paginación. Usa la RPC search_jobs.
 - /trabajos/[id]: detalle del turno (sin dirección exacta), estado de la postulación propia, aviso de cruce de horario, postular y retirar postulación (RPC apply_to_job / withdraw_application).
 - Al postular por primera vez se crea un perfil profesional mínimo (nombre + inicial del apellido). Falta la pantalla de perfil completo.
+
+## Datos de empresa y preguntas del empleador ✅ (09/10/2026)
+- Migración 7: RUT, razón social, giro, dirección fiscal, representante legal (nombre y RUT) y persona a cargo. La base impide publicar si falta algo.
+- /empresa/perfil: formulario con validación de RUT (módulo 11). Registro de empresa → completar datos → publicar.
+- Preguntas del empleador (hasta 5 por turno): Sí/No, opciones o respuesta corta; obligatorias u opcionales; respuestas excluyentes ocultas para el trabajador. Quien responde una excluyente queda marcado (applications.disqualified), sin rechazo automático.
+- Aviso al redactar preguntas sobre temas que no se deben preguntar (edad, embarazo, religión, salud, etc.).
+- 102 pruebas de base de datos pasando (21 nuevas).
+- Pendiente: panel de empresa para ver postulantes y sus respuestas.

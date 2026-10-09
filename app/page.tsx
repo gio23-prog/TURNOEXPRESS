@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { clp } from "@/lib/formato";
+import { empresaCompleta, RUTA_COMPLETAR_EMPRESA } from "@/lib/empresa";
 import Encabezado, { obtenerSesion } from "./componentes/encabezado";
 
 const PASOS_EMPRESA = [
@@ -25,6 +26,7 @@ export default async function Inicio() {
   ]);
 
   const categorias = catsRes.data ?? [];
+  const faltanDatosEmpresa = perfil?.role === "empresa" && !(await empresaCompleta(supabase, perfil.id));
   const regiones = regRes.count ?? 0;
   const comunas = comRes.count ?? 0;
 
@@ -46,7 +48,11 @@ export default async function Inicio() {
 
             {perfil ? (
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                {perfil.role === "empresa" ? (
+                {faltanDatosEmpresa ? (
+                  <Link href={RUTA_COMPLETAR_EMPRESA} className="rounded-xl bg-teal-700 px-6 py-3 text-center font-semibold text-white hover:bg-teal-800">
+                    Completa los datos de tu empresa
+                  </Link>
+                ) : perfil.role === "empresa" ? (
                   <Link href="/empresa/publicar" className="rounded-xl bg-teal-700 px-6 py-3 text-center font-semibold text-white hover:bg-teal-800">
                     Publicar un turno
                   </Link>

@@ -15,14 +15,15 @@ import {
   type Region,
 } from "@/lib/schemas/publicar";
 import { publicarTurno } from "./actions";
+import EditorPreguntas from "./preguntas";
 
-const PASOS = ["Qué", "Cuándo y dónde", "Pago y condiciones", "Modalidad", "Vista previa"];
+const PASOS = ["Qué", "Cuándo y dónde", "Pago y condiciones", "Preguntas", "Modalidad", "Vista previa"];
 
 const inicial: Borrador = {
   categoria: "", titulo: "", descripcion: "", cupos: "1",
   fecha: "", inicio: "09:00", termino: "17:00", region: "", comuna: "", direccion: "", urgente: false,
   modoPago: "total", monto: "", pausas: "", vestimenta: "", alimentacion: false, transporte: false,
-  respuestas: {}, confirmaAdvertencia: false,
+  preguntas: [], respuestas: {}, confirmaAdvertencia: false,
 };
 
 const clp = (n: number) =>
@@ -231,6 +232,10 @@ export default function FormularioPublicar({
         )}
 
         {paso === 3 && (
+          <EditorPreguntas preguntas={d.preguntas} onChange={(ps) => set("preguntas", ps)} errores={err} />
+        )}
+
+        {paso === 4 && (
           <>
             <p className="text-sm text-stone-600">
               Estas preguntas nos ayudan a evaluar si el trabajo se parece más a un servicio independiente o a una relación laboral.
@@ -245,7 +250,7 @@ export default function FormularioPublicar({
           </>
         )}
 
-        {paso === 4 && (
+        {paso === 5 && (
           <>
             <dl className="divide-y divide-stone-200 rounded-lg border border-stone-200 bg-white text-sm">
               {[
@@ -257,6 +262,7 @@ export default function FormularioPublicar({
                 ["Ubicación", nombreComuna ? `${nombreComuna}, ${nombreRegion}` : ""],
                 ["Pago", `${clp(pago.total)} total, ${clp(pago.valorHora)} por hora`],
                 ["Condiciones", [d.alimentacion && "alimentación", d.transporte && "transporte"].filter(Boolean).join(" y ") || "Sin extras"],
+                ["Preguntas", d.preguntas.length ? `${d.preguntas.length} para los postulantes` : "Sin preguntas"],
               ].map(([k, v]) => (
                 <div key={k as string} className="flex justify-between gap-4 p-3">
                   <dt className="text-stone-600">{k}</dt>

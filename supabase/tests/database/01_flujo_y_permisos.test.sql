@@ -37,8 +37,10 @@ select throws_like($$ insert into business_profiles (user_id, trade_name) values
   '%perfil de negocio%', 'Un trabajador no puede crear perfil de empresa');
 
 set local request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000001';
-select lives_ok($$ insert into business_profiles (user_id, trade_name, rut, comuna_id)
-  values (auth.uid(), 'Restaurante La Prueba', '11.111.111-1', (select id from comunas where name = 'Providencia')) $$,
+select lives_ok($$ insert into business_profiles (user_id, trade_name, rut, comuna_id, legal_name, giro, fiscal_address,
+    legal_rep_name, legal_rep_rut, contact_name, contact_phone)
+  values (auth.uid(), 'Restaurante La Prueba', '76.086.428-5', (select id from comunas where name = 'Providencia'),
+    'Restaurante La Prueba SpA', 'Restaurantes', 'Av. Providencia 1234', 'Ana Empresa', '11.111.111-1', 'Ana Empresa', '+56912345678') $$,
   'La empresa crea su perfil');
 select throws_like($$ update business_profiles set verification_status = 'verificado' where user_id = auth.uid() $$,
   '%permission denied%', 'La empresa no puede autoverificarse');
@@ -119,8 +121,10 @@ select is((select count(*)::int from v_public_businesses where user_id = 'b00000
 
 -- ============================================================ Empresa 2 (ajena)
 reset role;
-insert into business_profiles (user_id, trade_name, comuna_id) values
-  ('b0000000-0000-0000-0000-000000000002', 'Eventos Otro', (select id from comunas where name = 'Ñuñoa'));
+insert into business_profiles (user_id, trade_name, comuna_id, rut, legal_name, giro, fiscal_address,
+    legal_rep_name, legal_rep_rut, contact_name, contact_phone) values
+  ('b0000000-0000-0000-0000-000000000002', 'Eventos Otro', (select id from comunas where name = 'Ñuñoa'), '77.777.777-7',
+   'Eventos Otro Ltda', 'Producción de eventos', 'Irarrázaval 3000', 'Beto Empresa', '22.222.222-2', 'Beto Empresa', '+56987654321');
 set local role authenticated;
 set local request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000002';
 select is((select count(*)::int from applications where job_id = current_setting('t.job1')::uuid), 0,

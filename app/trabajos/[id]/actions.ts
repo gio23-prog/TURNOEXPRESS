@@ -11,6 +11,8 @@ const postulacionSchema = z.object({
   mensaje: z.string().trim().max(500, "Máximo 500 caracteres"),
   experiencia: z.string().trim().max(500, "Máximo 500 caracteres"),
   disponibilidad: z.boolean().refine((v) => v, "Confirma que tienes disponibilidad para todo el turno"),
+  // Respuestas a las preguntas de la empresa: { idPregunta: respuesta }. La base valida tipo, opciones y obligatoriedad.
+  respuestas: z.record(z.string().uuid(), z.string().trim().max(500, "Máximo 500 caracteres por respuesta")),
 });
 
 export type PostulacionInput = z.infer<typeof postulacionSchema>;
@@ -43,12 +45,13 @@ export async function postular(jobId: string, datos: PostulacionInput): Promise<
     if (error) return { ok: false, mensaje: "No pudimos crear tu perfil. Intenta de nuevo." };
   }
 
-  const { mensaje, experiencia } = parsed.data;
+  const { mensaje, experiencia, respuestas } = parsed.data;
   const { error } = await supabase.rpc("apply_to_job", {
     p_job: jobId,
     p_availability_confirmed: true,
     p_message: mensaje || null,
     p_highlighted_experience: experiencia || null,
+    p_answers: respuestas,
   });
   if (error) return { ok: false, mensaje: mensajeDe(error, "No pudimos enviar tu postulación. Intenta de nuevo.") };
 

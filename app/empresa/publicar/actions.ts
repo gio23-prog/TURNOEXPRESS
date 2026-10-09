@@ -1,7 +1,8 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { PREGUNTAS_MODALIDAD, rangoTurno, requiereAviso, validarTodo, type Borrador } from "@/lib/schemas/publicar";
+import { empresaCompleta } from "@/lib/empresa";
+import { PREGUNTAS_MODALIDAD, opcionesDe, rangoTurno, requiereAviso, validarTodo, type Borrador } from "@/lib/schemas/publicar";
 
 type Resultado = {
   ok: boolean;
@@ -32,13 +33,9 @@ export async function publicarTurno(datos: Borrador): Promise<Resultado> {
   if (!perfil) return { ok: false, mensaje: "No encontramos tu perfil. Vuelve a ingresar." };
   if (perfil.role !== "empresa") return { ok: false, mensaje: "Solo las cuentas de empresa pueden publicar turnos." };
 
-  // 3. Perfil de negocio: si aún no existe, se crea con el nombre del registro.
-  const { data: negocio } = await supabase.from("business_profiles").select("user_id").eq("user_id", auth.user.id).maybeSingle();
-  if (!negocio) {
-    const { error } = await supabase
-      .from("business_profiles")
-      .insert({ user_id: auth.user.id, trade_name: perfil.full_name, comuna_id: Number(datos.comuna) });
-    if (error) return { ok: false, mensaje: "No pudimos crear el perfil de tu negocio. Intenta de nuevo." };
+  // 3. Los datos legales de la empresa deben estar completos (la base también lo exige al publicar).
+  if (!(await empresaCompleta(supabase, auth.user.id))) {
+    return { ok: false, mensaje: "Completa los datos de tu empresa antes de publicar (menú Mi empresa)." };
   }
 
   // 4. Borrador.
@@ -79,7 +76,22 @@ export async function publicarTurno(datos: Borrador): Promise<Resultado> {
   const { error: errDir } = await supabase.from("job_post_private").insert({ job_id: job.id, address_line: datos.direccion.trim() });
   if (errDir) return { ok: false, mensaje: "Guardamos el turno como borrador, pero no la dirección. Intenta de nuevo." };
 
-  // 6. Publicar: la base valida reglas, recalcula el riesgo y decide si queda en revisión.
+  // 6. Preguntas para los postulantes (solo se pueden agregar mientras el turno es borrador).
+  if (datos.preguntas.length) {
+    const filas = datos.preguntas.map((p, i) => ({
+      job_id: job.id,
+      position: i + 1,
+      prompt: p.texto.trim(),
+      kind: p.tipo,
+      options: p.tipo === "opcion" ? opcionesDe(p) : null,
+      required: p.obligatoria,
+      disqualifying: p.tipo === "texto" || p.excluyentes.length === 0 ? null : p.excluyentes,
+    }));
+    const { error: errPreg } = await supabase.from("job_questions").insert(filas);
+    if (errPreg) return { ok: false, mensaje: "El turno quedó como borrador, pero no pudimos guardar las preguntas. Revísalas e intenta de nuevo." };
+  }
+
+  // 7. Publicar: la base valida reglas, recalcula el riesgo y decide si queda en revisión.
   const { data: estado, error: errPub } = await supabase.rpc("publish_job", { p_job: job.id });
   if (errPub) {
     return { ok: false, mensaje: mensajeDe(errPub, "El turno quedó guardado como borrador, pero no se pudo publicar.") };

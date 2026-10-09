@@ -18,6 +18,69 @@ export const PREGUNTAS_MODALIDAD = [
 
 export type PreguntaId = (typeof PREGUNTAS_MODALIDAD)[number]["id"];
 
+// ---------- Preguntas del empleador (filtro de postulantes) ----------
+
+export type TipoPregunta = "si_no" | "opcion" | "texto";
+export type PreguntaEmpleador = {
+  texto: string;
+  tipo: TipoPregunta;
+  opciones: string; // una por línea (solo para "opcion")
+  obligatoria: boolean;
+  excluyentes: string[]; // "si" | "no" | opciones que descartan
+};
+
+export const MAX_PREGUNTAS = 5;
+
+export const SUGERENCIAS_PREGUNTAS: Omit<PreguntaEmpleador, "obligatoria" | "excluyentes">[] = [
+  { texto: "¿Tienes experiencia en este tipo de trabajo?", tipo: "si_no", opciones: "" },
+  { texto: "¿Cuántos años de experiencia tienes en el cargo?", tipo: "opcion", opciones: "Menos de 1 año\n1 a 3 años\nMás de 3 años" },
+  { texto: "¿Puedes emitir boleta de honorarios electrónica?", tipo: "si_no", opciones: "" },
+  { texto: "¿Cuentas con el uniforme o vestimenta indicada?", tipo: "si_no", opciones: "" },
+  { texto: "Cuéntanos brevemente tu experiencia más reciente", tipo: "texto", opciones: "" },
+];
+
+// Temas que no se deben preguntar: la ley chilena prohíbe discriminar por ellos.
+const TEMAS_SENSIBLES: [RegExp, string][] = [
+  [/\bedad\b|cu[aá]ntos a[nñ]os tienes|a[nñ]o de nacimiento/i, "edad"],
+  [/embaraz|hijos|estado civil|casad[oa]|solter[oa]/i, "situación familiar o embarazo"],
+  [/religi|iglesia|creencia/i, "religión"],
+  [/enfermedad|salud|discapacidad|licencia m[eé]dica|vih/i, "salud o discapacidad"],
+  [/sindica/i, "afiliación sindical"],
+  [/sexo|g[eé]nero|orientaci[oó]n sexual/i, "sexo u orientación sexual"],
+  [/pol[ií]tic|partido/i, "opinión política"],
+  [/raza|etnia|color de piel/i, "origen étnico"],
+];
+
+export function temaSensible(texto: string): string | null {
+  return TEMAS_SENSIBLES.find(([re]) => re.test(texto))?.[1] ?? null;
+}
+
+export function opcionesDe(p: Pick<PreguntaEmpleador, "opciones">): string[] {
+  return [...new Set(p.opciones.split("\n").map((o) => o.trim()).filter(Boolean))];
+}
+
+/** Errores por pregunta, con clave "pregunta-<n>". Mismas reglas que la tabla job_questions. */
+export function validarPreguntas(ps: PreguntaEmpleador[]): Record<string, string> {
+  const e: Record<string, string> = {};
+  if (ps.length > MAX_PREGUNTAS) e.preguntas = `Máximo ${MAX_PREGUNTAS} preguntas`;
+  ps.forEach((p, i) => {
+    const k = `pregunta-${i}`;
+    const t = p.texto.trim();
+    if (t.length < 5) e[k] = "Escribe la pregunta (mínimo 5 caracteres)";
+    else if (t.length > 200) e[k] = "Máximo 200 caracteres";
+    else if (p.tipo === "opcion") {
+      const ops = opcionesDe(p);
+      if (ops.length < 2 || ops.length > 6) e[k] = "Escribe entre 2 y 6 opciones, una por línea";
+      else if (ops.some((o) => o.length > 80)) e[k] = "Cada opción puede tener máximo 80 caracteres";
+      else if (p.excluyentes.some((x) => !ops.includes(x))) e[k] = "Revisa las respuestas excluyentes";
+      else if (p.excluyentes.length >= ops.length) e[k] = "Al menos una opción no debe ser excluyente";
+    } else if (p.tipo === "si_no" && p.excluyentes.length > 1) {
+      e[k] = "Solo una respuesta puede ser excluyente";
+    }
+  });
+  return e;
+}
+
 export type Borrador = {
   categoria: string; // id de subcategoría
   titulo: string;
@@ -36,6 +99,7 @@ export type Borrador = {
   vestimenta: string;
   alimentacion: boolean;
   transporte: boolean;
+  preguntas: PreguntaEmpleador[];
   respuestas: Partial<Record<PreguntaId, boolean>>;
   confirmaAdvertencia: boolean;
 };
@@ -132,9 +196,10 @@ function aMapa(issues: { path: PropertyKey[]; message: string }[]) {
   return out;
 }
 
-/** Valida un paso (0 a 3). Se usa en el formulario y en la Server Action. */
+/** Pasos: 0 Qué · 1 Cuándo y dónde · 2 Pago · 3 Preguntas · 4 Modalidad. Se usa en el formulario y en la Server Action. */
 export function validarPaso(n: number, d: Borrador): Record<string, string> {
-  if (n === 3) {
+  if (n === 3) return validarPreguntas(d.preguntas);
+  if (n === 4) {
     const e: Record<string, string> = {};
     for (const p of PREGUNTAS_MODALIDAD) if (d.respuestas[p.id] === undefined) e[p.id] = "Responde sí o no";
     return e;
@@ -149,7 +214,7 @@ export function validarPaso(n: number, d: Borrador): Record<string, string> {
 }
 
 export function validarTodo(d: Borrador): Record<string, string> {
-  const e = { ...validarPaso(0, d), ...validarPaso(1, d), ...validarPaso(2, d), ...validarPaso(3, d) };
+  const e = { ...validarPaso(0, d), ...validarPaso(1, d), ...validarPaso(2, d), ...validarPaso(3, d), ...validarPaso(4, d) };
   if (requiereAviso(d.respuestas) && !d.confirmaAdvertencia) {
     e.confirmaAdvertencia = "Confirma que leíste la advertencia";
   }

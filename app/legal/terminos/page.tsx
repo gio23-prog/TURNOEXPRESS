@@ -126,16 +126,12 @@ export default function Terminos() {
                 aceptadas quedan registradas y cualquier cambio de horario o pago requiere la aprobación de ambos.
               </p>
               <p>
-                Las cancelaciones quedan registradas con su autor, fecha y motivo. Las cancelaciones reiteradas o sin aviso
-                pueden llevar a la suspensión de la cuenta.
+                Las cancelaciones quedan registradas con su autor, fecha y motivo.
               </p>
               <p>
-                <strong>Inasistencia.</strong> Al aceptar un turno, el Trabajador se compromete a presentarse o a cancelarlo
-                desde la Plataforma antes de su inicio. Si no se presenta sin haberlo cancelado, la Empresa puede informarlo
-                desde 15 minutos después de la hora de inicio y hasta 48 horas después del término del turno. Con ese aviso, la
-                cuenta del Trabajador se suspende automáticamente por al menos 48 horas y solo nuestro equipo puede
-                reactivarla. El Trabajador puede enviar su descargo, que revisaremos antes de decidir. Si el aviso de la
-                Empresa resulta falso, reactivaremos la cuenta de inmediato y la Empresa podrá ser suspendida.
+                <strong>Asistencia.</strong> La asistencia y la puntualidad son parte del acuerdo entre la Empresa y el
+                Trabajador. {o.marca} no controla la asistencia, no recibe reportes de inasistencia ni suspende cuentas por
+                ese motivo. La Empresa puede reflejar lo ocurrido en su evaluación del servicio.
               </p>
               <p>
                 Solo se puede evaluar un servicio finalizado. Las evaluaciones deben ser honestas y respetuosas; está prohibido

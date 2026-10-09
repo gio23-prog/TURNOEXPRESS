@@ -99,3 +99,9 @@ Proyecto Next.js, identidad visual, registro/ingreso con selección de rol, perf
 - Al ingresar, un trabajador con perfil incompleto va directo a /trabajador/perfil.
 - 168 pruebas de base de datos pasando.
 - En pausa (esperando decisión): pantallas para informar inasistencia, aviso de suspensión/descargo y panel de reactivación.
+
+## Sin gestión de inasistencias ✅ (09/10/2026)
+- Decisión: la asistencia es un asunto entre empresa y trabajador. La plataforma no recibe reportes de inasistencia ni suspende cuentas por ese motivo.
+- Migración 16: elimina worker_suspensions, report_no_show, descargo, reactivación e is_suspended; respond_offer vuelve a su firma original (sin condición de asistencia).
+- Se mantienen datos personales, CV y su envío con cada postulación. Términos y Privacidad actualizados.
+- 143 pruebas de base de datos pasando.

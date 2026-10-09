@@ -38,9 +38,11 @@ export default function Privacidad() {
             <>
               <p><strong>Si eres Trabajador:</strong></p>
               <ul>
-                <li>Cuenta: nombre, correo y contraseña (que guardamos cifrada).</li>
+                <li>Cuenta: nombre completo, correo y contraseña (que guardamos cifrada).</li>
+                <li>Datos personales: teléfono, RUT, comuna y dirección. No los mostramos a las empresas.</li>
+                <li>Currículum: el archivo PDF que subas.</li>
                 <li>Perfil: nombre visible, descripción, experiencia, oficios, comunas donde trabajas, disponibilidad, tarifa, si emites boleta de honorarios y, si la subes, una foto.</li>
-                <li>Postulaciones: tu mensaje, la experiencia que destaques y tus respuestas a las preguntas de la empresa.</li>
+                <li>Postulaciones: el currículum enviado, tu mensaje, la experiencia que destaques y tus respuestas a las preguntas de la empresa.</li>
                 <li>Contrataciones: condiciones aceptadas, mensajes con la empresa, evaluaciones y los datos de tus boletas (folio, fecha, monto y, si lo adjuntas, el archivo).</li>
               </ul>
               <p><strong>Si eres Empresa:</strong></p>
@@ -80,8 +82,8 @@ export default function Privacidad() {
             <>
               <ul>
                 <li>
-                  <strong>Entre usuarios, solo lo necesario:</strong> cuando postulas, la empresa ve tu perfil, tu mensaje y tus
-                  respuestas. Los trabajadores ven el nombre comercial de la empresa, nunca su RUT ni el de su representante. La
+                  <strong>Entre usuarios, solo lo necesario:</strong> cuando postulas a un turno, esa empresa ve tu perfil, tu
+                  currículum, tu mensaje y tus respuestas; no ve tu RUT, tu teléfono ni tu dirección. Los trabajadores ven el nombre comercial de la empresa, nunca su RUT ni el de su representante. La
                   dirección exacta de un turno solo la ve quien queda contratado.
                 </li>
                 <li>

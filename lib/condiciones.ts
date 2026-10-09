@@ -39,10 +39,3 @@ export function condicionesPara(contrato: TipoContrato | "", conIndicios = false
 export const CIERRE_CONDICIONES =
   "Entiendo que mi empresa es responsable de la relación con la persona que preste el servicio, que estas condiciones " +
   "no reemplazan los derechos que la ley le otorga, y que su incumplimiento puede llevar a la suspensión de mi cuenta.";
-
-// Condición que acepta el trabajador al confirmar un turno. Si cambias el texto, sube la versión.
-export const ASISTENCIA_VERSION = "2026-10-09";
-export const CONDICION_ASISTENCIA =
-  "Me comprometo a presentarme a la hora acordada. Si no puedo asistir, cancelaré el turno desde TurnoExpress antes de " +
-  "su inicio. Si no me presento sin haberlo cancelado, mi cuenta se suspenderá automáticamente por al menos 48 horas " +
-  "y solo el equipo de TurnoExpress podrá reactivarla, después de revisar lo ocurrido y mi descargo.";

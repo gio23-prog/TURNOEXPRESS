@@ -162,9 +162,9 @@ select set_config('t.offer1', send_offer(current_setting('t.app1')::uuid, 'Te es
 select throws_like($$ select send_offer(current_setting('t.app2')::uuid) $$, '%cupos%', 'No permite ofertar más que los cupos');
 
 set local request.jwt.claim.sub = 'a0000000-0000-0000-0000-000000000001';
-select throws_like($$ select respond_offer(current_setting('t.offer1')::uuid, true, false, null, 'test') $$, '%disponibilidad%',
+select throws_like($$ select respond_offer(current_setting('t.offer1')::uuid, true, false, null) $$, '%disponibilidad%',
   'Aceptar exige confirmar disponibilidad');
-select set_config('t.book1', respond_offer(current_setting('t.offer1')::uuid, true, true, null, 'test')::text, true);
+select set_config('t.book1', respond_offer(current_setting('t.offer1')::uuid, true, true, null)::text, true);
 select is((select status::text from bookings where id = current_setting('t.book1')::uuid), 'confirmada', 'Contratación confirmada');
 select is((select terms_snapshot->>'monto_clp' from bookings where id = current_setting('t.book1')::uuid), '30000',
   'Se guarda el resumen de condiciones');
@@ -203,10 +203,10 @@ select is((select count(*)::int from my_overlapping_bookings(current_setting('t.
 set local request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000002';
 select set_config('t.offer3', send_offer(current_setting('t.app3')::uuid)::text, true);
 set local request.jwt.claim.sub = 'a0000000-0000-0000-0000-000000000001';
-select throws_like($$ select respond_offer(current_setting('t.offer3')::uuid, true, true, null, 'test') $$, '%se superpone%',
+select throws_like($$ select respond_offer(current_setting('t.offer3')::uuid, true, true, null) $$, '%se superpone%',
   'Bloquea contrataciones con horarios superpuestos');
 select lives_ok($$ select set_config('t.book3', respond_offer(current_setting('t.offer3')::uuid, true, true,
-  'El evento es en el mismo local y la empresa 1 lo autorizó por escrito', 'test')::text, true) $$,
+  'El evento es en el mismo local y la empresa 1 lo autorizó por escrito')::text, true) $$,
   'Permite superposición con justificación explícita');
 
 -- Cancelación con registro

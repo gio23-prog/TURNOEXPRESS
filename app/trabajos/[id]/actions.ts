@@ -4,7 +4,6 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { esUUID } from "@/lib/formato";
-import { ASISTENCIA_VERSION } from "@/lib/condiciones";
 
 type Resultado = { ok: boolean; mensaje: string; errores?: Record<string, string> };
 
@@ -78,15 +77,11 @@ export async function responderOferta(
   offerId: string,
   aceptar: boolean,
   disponibilidad: boolean,
-  aceptaAsistencia: boolean,
   justificacionCruce?: string,
 ): Promise<Resultado> {
   if (!esUUID(jobId) || !esUUID(offerId)) return { ok: false, mensaje: "Oferta no encontrada." };
   if (aceptar && !disponibilidad) {
     return { ok: false, mensaje: "Confirma que tienes disponibilidad para el turno.", errores: { disponibilidad: "Obligatorio" } };
-  }
-  if (aceptar && !aceptaAsistencia) {
-    return { ok: false, mensaje: "Para aceptar el turno debes aceptar el compromiso de asistencia.", errores: { asistencia: "Obligatorio" } };
   }
   const supabase = await createClient();
   const { data: auth } = await supabase.auth.getUser();
@@ -98,7 +93,6 @@ export async function responderOferta(
     p_accept: aceptar,
     p_availability_confirmed: disponibilidad,
     p_overlap_justification: justificacion,
-    p_terms_version: aceptar ? ASISTENCIA_VERSION : null,
   });
   if (error) return { ok: false, mensaje: mensajeDe(error, "No pudimos registrar tu respuesta. Intenta de nuevo.") };
 

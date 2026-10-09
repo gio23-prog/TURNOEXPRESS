@@ -148,6 +148,18 @@ export default async function DetalleTurno({ params }: { params: Promise<{ id: s
               </div>
             </dl>
 
+            {t.contract_type === "honorarios" && (
+              <aside className="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-950">
+                <p className="font-semibold">Turno con boleta de honorarios: conoce tus derechos</p>
+                <p className="mt-1">
+                  Con boleta de honorarios prestas un servicio independiente: organizas tu trabajo y emites la boleta en el SII.
+                  Si en la práctica te supervisan, te fijan horario y te dan instrucciones durante todo el turno, podría
+                  corresponder un contrato de trabajo, con cotizaciones y demás derechos laborales. Puedes reportarlo a
+                  TurnoExpress o consultar en la Dirección del Trabajo.
+                </p>
+              </aside>
+            )}
+
             <section>
               <h2 className="text-lg font-bold">Qué hay que hacer</h2>
               <p className="mt-2 max-w-prose whitespace-pre-line text-stone-700">{t.description}</p>

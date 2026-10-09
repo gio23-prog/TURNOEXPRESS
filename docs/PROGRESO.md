@@ -69,3 +69,10 @@ Proyecto Next.js, identidad visual, registro/ingreso con selección de rol, perf
 - Texto en lib/condiciones.ts (BORRADOR para revisión legal): compromisos comunes + específicos para contrato de trabajo u honorarios.
 - 134 pruebas de base de datos pasando.
 - Pendiente de decisión: honorarios con 3+ indicios → ¿revisión antes de publicar (actual) o publicar y revisar después?
+
+## Revisión solo cuando hace falta + documentos legales ✅ (09/10/2026)
+- Migración 12: honorarios con 3+ indicios se publica de inmediato y queda marcado para revisión posterior (followup_*). Revisión previa solo por pago por hora inusualmente alto. Lo grave (discriminación, contacto, cobros, multinivel) se bloquea al instante.
+- Una sola casilla al publicar: las condiciones del empleador incluyen veracidad y, si corresponde, el aviso de indicios.
+- Trabajador ve aviso de derechos en turnos con boleta de honorarios.
+- /legal/terminos y /legal/privacidad: textos propios (no copiados) para Chile, enlazados en el pie y en el registro. Datos del operador en lib/operador.ts (COMPLETAR).
+- 136 pruebas de base de datos pasando.

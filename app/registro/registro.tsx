@@ -111,7 +111,10 @@ export default function Registro({ regiones, comunas }: { regiones: Opcion[]; co
 
           <label className="flex items-start gap-2 text-sm text-stone-700">
             <input type="checkbox" className="mt-1" checked={d.consentimiento} onChange={(e) => set("consentimiento", e.target.checked)} />
-            Acepto los términos de uso y la política de privacidad.
+            Soy mayor de 18 años y acepto los{" "}
+            <a href="/legal/terminos" target="_blank" className="font-medium text-teal-800 underline">Términos y Condiciones</a>{" "}
+            y la{" "}
+            <a href="/legal/privacidad" target="_blank" className="font-medium text-teal-800 underline">Política de Privacidad</a>.
           </label>
           {err.consentimiento && <p role="alert" className="text-sm text-red-700">{err.consentimiento}</p>}
 

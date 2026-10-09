@@ -4,7 +4,7 @@
 
 import type { TipoContrato } from "@/lib/reglas-publicacion";
 
-export const CONDICIONES_VERSION = "2026-10-09";
+export const CONDICIONES_VERSION = "2026-10-09.2";
 
 const COMUNES = [
   "La información del turno es verdadera y completa: tareas, horario, lugar, pago y condiciones.",
@@ -20,14 +20,20 @@ const CONTRATO_TRABAJO = [
 ];
 
 const HONORARIOS = [
+  "Las respuestas sobre la modalidad describen cómo se hará realmente el trabajo.",
   "La persona prestará el servicio de forma independiente: sin subordinación, sin supervisión directa ni instrucciones continuas.",
   "Si corresponde, retendré y declararé el impuesto de la boleta de honorarios.",
   "Si en la práctica la relación pasa a ser laboral, asumiré todas las obligaciones de empleador.",
 ];
 
-export function condicionesPara(contrato: TipoContrato | "") {
+const CON_INDICIOS =
+  "Fui informado de que este turno tiene indicios de relación laboral y de que, si en la práctica hay subordinación " +
+  "y dependencia, corresponde un contrato de trabajo.";
+
+export function condicionesPara(contrato: TipoContrato | "", conIndicios = false) {
   if (!contrato) return [];
-  return [...COMUNES, ...(contrato === "honorarios" ? HONORARIOS : CONTRATO_TRABAJO)];
+  if (contrato !== "honorarios") return [...COMUNES, ...CONTRATO_TRABAJO];
+  return [...COMUNES, ...HONORARIOS, ...(conIndicios ? [CON_INDICIOS] : [])];
 }
 
 export const CIERRE_CONDICIONES =

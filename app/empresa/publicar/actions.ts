@@ -66,7 +66,8 @@ export async function publicarTurno(datos: Borrador): Promise<Resultado> {
       transport_info: datos.transporte ? "Incluye transporte" : null,
       is_urgent: datos.urgente,
       contract_type: datos.contrato,
-      labor_warning_ack_at: riesgoso && datos.confirmaAdvertencia ? new Date().toISOString() : null,
+      // El aviso de indicios forma parte de las condiciones aceptadas.
+      labor_warning_ack_at: riesgoso && datos.aceptaCondiciones ? new Date().toISOString() : null,
       // Aceptación obligatoria de las condiciones del empleador (la base no publica sin ella).
       employer_terms_version: CONDICIONES_VERSION,
       employer_terms_accepted_at: new Date().toISOString(),
@@ -113,5 +114,12 @@ export async function publicarTurno(datos: Borrador): Promise<Resultado> {
       mensaje: `Tu turno quedó en revisión${motivo ? ` (motivo: ${motivo})` : ""}. Te avisaremos cuando el equipo lo revise.`,
     };
   }
-  return { ok: true, estado: "publicada", mensaje: "Tu turno ya está visible para los trabajadores." };
+  const { data: seg } = await supabase.from("job_posts").select("followup_reason").eq("id", job.id).single();
+  return {
+    ok: true,
+    estado: "publicada",
+    mensaje: seg?.followup_reason
+      ? "Tu turno ya está visible para los trabajadores. Como es con boleta de honorarios y tiene indicios de relación laboral, lo revisaremos en los próximos días."
+      : "Tu turno ya está visible para los trabajadores.",
+  };
 }

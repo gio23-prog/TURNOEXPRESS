@@ -48,8 +48,10 @@ select is((select engagement_mode::text from job_posts where id = current_settin
 
 select lives_ok($$ select set_config('t.alto', pg_temp.borrador('Cajero turno noche', 'Atención de caja con jefe de local.', 'honorarios', 30000, false, true, true, true, false)::text, true) $$, 'Borrador honorarios riesgo alto');
 update job_posts set labor_warning_ack_at = now() where id = current_setting('t.alto')::uuid;
-select is(publish_job(current_setting('t.alto')::uuid)::text, 'en_revision', 'Honorarios con 3 o más indicios pasa a revisión');
-select alike((select review_note from job_posts where id = current_setting('t.alto')::uuid), '%indicios de relación laboral%', 'Registra el motivo de la revisión');
+select is(publish_job(current_setting('t.alto')::uuid)::text, 'publicada', 'Honorarios con 3 o más indicios se publica de inmediato');
+select alike((select followup_reason from job_posts where id = current_setting('t.alto')::uuid), '%indicios de relación laboral%', 'Queda marcado para revisión posterior');
+select is((select followup_status from job_posts where id = current_setting('t.alto')::uuid), 'pendiente', 'Seguimiento pendiente');
+select is((select followup_reason from job_posts where id = current_setting('t.bajo')::uuid), null, 'Sin indicios no queda marcado');
 
 select is(publish_job(pg_temp.borrador('Cajero turno evento', 'Atención de caja en evento corporativo.', 'por_obra', 900000, null, null, null, null, null))::text,
   'en_revision', 'Pago por hora inusualmente alto pasa a revisión');

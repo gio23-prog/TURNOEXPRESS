@@ -126,9 +126,7 @@ export type Borrador = {
   preguntas: PreguntaEmpleador[];
   respuestas: Partial<Record<PreguntaId, boolean>>;
   contrato: TipoContrato | "";
-  declaraVeracidad: boolean;
   aceptaCondiciones: boolean;
-  confirmaAdvertencia: boolean;
 };
 
 const hora = z.string().regex(/^\d{2}:\d{2}$/, "Ingresa una hora válida");
@@ -233,7 +231,6 @@ export function validarPaso(n: number, d: Borrador): Record<string, string> {
     // El cuestionario de modalidad solo aplica a la boleta de honorarios.
     if (d.contrato === "honorarios") {
       for (const p of PREGUNTAS_MODALIDAD) if (d.respuestas[p.id] === undefined) e[p.id] = "Responde sí o no";
-      if (!d.declaraVeracidad) e.declaraVeracidad = "Confirma que las respuestas describen cómo se hará realmente el trabajo";
     }
     return e;
   }
@@ -257,9 +254,7 @@ export function validarPaso(n: number, d: Borrador): Record<string, string> {
 
 export function validarTodo(d: Borrador): Record<string, string> {
   const e = { ...validarPaso(0, d), ...validarPaso(1, d), ...validarPaso(2, d), ...validarPaso(3, d), ...validarPaso(4, d) };
+  // Una sola aceptación: incluye la veracidad de las respuestas y, si hay indicios, el aviso de relación laboral.
   if (!d.aceptaCondiciones) e.aceptaCondiciones = "Debes aceptar las condiciones del empleador para publicar";
-  if (requiereAviso(d) && !d.confirmaAdvertencia) {
-    e.confirmaAdvertencia = "Confirma que leíste la advertencia";
-  }
   return e;
 }

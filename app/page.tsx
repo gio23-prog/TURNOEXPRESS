@@ -187,11 +187,6 @@ export default async function Inicio() {
         </section>
       </main>
 
-      <footer className="border-t border-stone-200 bg-white">
-        <div className="mx-auto max-w-5xl px-4 py-6 text-sm text-stone-500">
-          TurnoExpress (nombre provisional) · Santiago, Chile · 2026
-        </div>
-      </footer>
     </div>
   );
 }

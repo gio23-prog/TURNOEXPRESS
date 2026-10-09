@@ -30,3 +30,10 @@
 **12. Oficios regulados**: instalaciones eléctricas o de gas exigen autorización SEC; la subcategoría "Apoyo en instalaciones" ya lo advierte, pero debe definirse si se permite.
 **13. Remuneraciones mínimas**: el sistema no inventa un mínimo por modalidad. Si un turno se ejecuta como relación laboral, aplica el ingreso mínimo mensual proporcional; el abogado debe validar las advertencias de tarifa que mostrará la interfaz.
 **14. Edad mínima**: el registro debe exigir mayoría de edad (o reglas específicas para mayores de 15 con autorización, a confirmar). Decidir y aplicar en la Etapa 2.
+
+## D. Documentos publicados (borradores)
+- Términos y Condiciones: app/legal/terminos/page.tsx
+- Política de Privacidad: app/legal/privacidad/page.tsx
+- Condiciones del empleador al publicar: lib/condiciones.ts
+- Datos del operador a completar: lib/operador.ts
+Revisar con abogado: rol de intermediación frente a la Ley 21.431 y a las EST; plazos de conservación; transferencias internacionales; procedimiento ante la Agencia de Protección de Datos (Ley 21.719); cláusulas de responsabilidad frente a la Ley 19.496.

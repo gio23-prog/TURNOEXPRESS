@@ -86,13 +86,13 @@ with x as (
   values (auth.uid(), 'Cajero turno largo', (select id from categories where slug = 'cajero'),
           'Caja con supervisión directa del jefe de local todo el turno.',
           current_setting('t.start')::timestamptz + interval '2 days', current_setting('t.start')::timestamptz + interval '2 days 8 hours',
-          (select id from comunas where name = 'Santiago'), 'por_hora', 4500, 'prestacion_independiente', false, true, true, true, false)
+          (select id from comunas where name = 'Santiago'), 'por_hora', 45000, 'prestacion_independiente', false, true, true, true, false)
   returning id)
 select set_config('t.job2', id::text, true) from x;
 insert into job_post_private (job_id, address_line) values (current_setting('t.job2')::uuid, 'Huérfanos 1000');
 select throws_like($$ select publish_job(current_setting('t.job2')::uuid) $$, '%advertencia%', 'Riesgo alto exige confirmar advertencia');
 update job_posts set labor_warning_ack_at = now() where id = current_setting('t.job2')::uuid;
-select is(publish_job(current_setting('t.job2')::uuid)::text, 'en_revision', 'Riesgo alto + independiente pasa a revisión');
+select is(publish_job(current_setting('t.job2')::uuid)::text, 'en_revision', 'Pago por hora inusualmente alto pasa a revisión previa');
 
 -- ============================================================ Trabajadores
 set local request.jwt.claim.sub = 'a0000000-0000-0000-0000-000000000001';

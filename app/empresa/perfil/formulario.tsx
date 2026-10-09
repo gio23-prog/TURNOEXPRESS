@@ -250,7 +250,12 @@ export default function FormularioEmpresa({
           <label className="flex items-start gap-2 text-sm text-stone-700">
             <input id="consentimiento" type="checkbox" className="mt-1 size-4" checked={!!d.consentimiento}
               onChange={(e) => set("consentimiento", e.target.checked)} />
-            Acepto los términos de uso y la política de privacidad, y declaro que los datos de la empresa son verdaderos.
+            <span>
+            Soy mayor de 18 años y acepto los{" "}
+            <a href="/legal/terminos" target="_blank" className="font-medium text-teal-800 underline">Términos y Condiciones</a>{" "}
+            y la{" "}
+            <a href="/legal/privacidad" target="_blank" className="font-medium text-teal-800 underline">Política de Privacidad</a>, y declaro que los datos de la empresa son verdaderos.
+            </span>
           </label>
           {err.consentimiento && <p role="alert" className="mt-1 text-sm text-red-700">{err.consentimiento}</p>}
         </div>

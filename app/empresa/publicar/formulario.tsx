@@ -25,7 +25,7 @@ const inicial: Borrador = {
   categoria: "", titulo: "", descripcion: "", cupos: "1",
   fecha: "", inicio: "09:00", termino: "17:00", region: "", comuna: "", direccion: "", urgente: false,
   modoPago: "total", monto: "", pausas: "", vestimenta: "", alimentacion: false, transporte: false,
-  preguntas: [], respuestas: {}, contrato: "", declaraVeracidad: false, aceptaCondiciones: false, confirmaAdvertencia: false,
+  preguntas: [], respuestas: {}, contrato: "", aceptaCondiciones: false,
 };
 
 const clp = (n: number) =>
@@ -101,7 +101,6 @@ export default function FormularioPublicar({
 
   function publicar() {
     const faltan: Record<string, string> = {};
-    if (aviso && !d.confirmaAdvertencia) faltan.confirmaAdvertencia = "Confirma que leíste la advertencia";
     if (!d.aceptaCondiciones) faltan.aceptaCondiciones = "Debes aceptar las condiciones del empleador para publicar";
     if (Object.keys(faltan).length) {
       setErr(faltan);
@@ -257,7 +256,7 @@ export default function FormularioPublicar({
                     className={`flex cursor-pointer gap-3 rounded-lg border p-3 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-teal-700 ${
                       d.contrato === t.id ? "border-teal-700 bg-teal-50" : "border-stone-300 bg-white"}`}>
                     <input id={`contrato-${t.id}`} type="radio" name="contrato" className="mt-1" checked={d.contrato === t.id}
-                      onChange={() => setD((p) => ({ ...p, contrato: t.id, confirmaAdvertencia: false, declaraVeracidad: false }))} />
+                      onChange={() => setD((p) => ({ ...p, contrato: t.id, aceptaCondiciones: false }))} />
                     <span>
                       <span className="block font-medium text-stone-900">{t.nombre}</span>
                       <span className="block text-sm text-stone-600">{t.ayuda}</span>
@@ -300,25 +299,18 @@ export default function FormularioPublicar({
                 <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                   {(["por_obra", "plazo_fijo"] as const).map((c) => (
                     <button key={c} type="button"
-                      onClick={() => setD((p) => ({ ...p, contrato: c, respuestas: {}, declaraVeracidad: false, confirmaAdvertencia: false }))}
+                      onClick={() => setD((p) => ({ ...p, contrato: c, respuestas: {}, aceptaCondiciones: false }))}
                       className="rounded-lg bg-teal-700 px-4 py-2.5 font-medium text-white hover:bg-teal-800">
                       Cambiar a {nombreContrato(c).toLowerCase()}
                     </button>
                   ))}
                 </div>
                 {riesgo === "alto" && (
-                  <p className="mt-3 text-teal-900">Si mantienes la boleta de honorarios, el equipo revisará el turno antes de publicarlo.</p>
+                  <p className="mt-3 text-teal-900">Si mantienes la boleta de honorarios, el turno se publica igual, lo revisaremos después y la persona verá un aviso sobre sus derechos.</p>
                 )}
               </div>
             )}
 
-            <label className="flex items-start gap-2 text-sm text-stone-800">
-              <input id="declaraVeracidad" type="checkbox" className="mt-1 size-4" checked={d.declaraVeracidad}
-                onChange={(e) => set("declaraVeracidad", e.target.checked)} />
-              Declaro que estas respuestas describen cómo se hará realmente el trabajo. Responder distinto a la realidad
-              para evitar la revisión puede constituir una simulación de la relación laboral.
-            </label>
-            {err.declaraVeracidad && <p role="alert" className="text-sm text-red-700">{err.declaraVeracidad}</p>}
             </>
             )}
           </>
@@ -345,31 +337,20 @@ export default function FormularioPublicar({
                 </div>
               ))}
             </dl>
-            {aviso ? (
-              <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-                <p className="font-medium">
+            {aviso && (
+              <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                <span className="font-medium">
                   {riesgo === "alto" ? "Este turno tiene varios indicios de relación laboral." : "Este turno tiene algunos indicios de relación laboral."}
-                </p>
-                <p className="mt-1">
-                  {riesgo === "alto"
-                    ? "Quedará en revisión antes de ser visible. "
-                    : ""}
-                  Si en la práctica hay subordinación y dependencia, puede corresponder un contrato de trabajo y no una boleta de honorarios.
-                </p>
-                <label className="mt-3 flex items-start gap-2">
-                  <input type="checkbox" className="mt-1" checked={d.confirmaAdvertencia} onChange={(e) => set("confirmaAdvertencia", e.target.checked)} />
-                  Leí la advertencia y quiero continuar
-                </label>
-                {err.confirmaAdvertencia && <p role="alert" className="mt-1 text-red-700">{err.confirmaAdvertencia}</p>}
-              </div>
-            ) : d.contrato === "honorarios" ? (
-              <p className="text-sm text-stone-600">Sin indicios relevantes de relación laboral. El resultado final lo confirma el sistema al publicar.</p>
-            ) : null}
+                </span>{" "}
+                Se publicará igual{riesgo === "alto" ? " y lo revisaremos después" : ""}. Si en la práctica hay subordinación y
+                dependencia, corresponde un contrato de trabajo y no una boleta de honorarios.
+              </p>
+            )}
             <section aria-labelledby="titulo-condiciones" className="rounded-lg border border-stone-300 bg-white p-4 text-sm text-stone-800">
               <h2 id="titulo-condiciones" className="text-base font-semibold text-stone-900">Condiciones del empleador</h2>
               <p className="mt-1 text-stone-600">Al publicar este turno, me comprometo a:</p>
               <ul className="mt-2 list-disc space-y-1 pl-5">
-                {condicionesPara(d.contrato).map((c) => <li key={c}>{c}</li>)}
+                {condicionesPara(d.contrato, aviso).map((c) => <li key={c}>{c}</li>)}
               </ul>
               <p className="mt-3 text-stone-600">{CIERRE_CONDICIONES}</p>
               <label className="mt-3 flex items-start gap-2 font-medium text-stone-900">

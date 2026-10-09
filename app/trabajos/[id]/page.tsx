@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { clp, diaRelativo, duracion, esUUID, fecha, hora } from "@/lib/formato";
 import Encabezado, { obtenerSesion } from "@/app/componentes/encabezado";
 import { nombreContrato } from "@/lib/reglas-publicacion";
+import { faltantesTrabajador } from "@/lib/trabajador";
 import { BotonRetirar, FormularioPostular, type PreguntaPublica } from "./postular";
 import { PanelOferta } from "./oferta";
 import { LineaEstado } from "@/app/componentes/estado";
@@ -53,7 +54,7 @@ export default async function DetalleTurno({ params }: { params: Promise<{ id: s
     .maybeSingle<Record<string, any>>(); // eslint-disable-line @typescript-eslint/no-explicit-any
   if (!t) notFound();
 
-  const [catRes, negocioRes, postRes, cruceRes, pregRes] = await Promise.all([
+  const [catRes, negocioRes, postRes, cruceRes, pregRes, faltan] = await Promise.all([
     supabase.from("categories").select("name, parent_id").eq("id", t.category_id).single(),
     supabase.from("v_public_businesses").select("trade_name, verification_status, rating_avg, rating_count").eq("user_id", t.business_id).maybeSingle(),
     sesion.role === "trabajador"
@@ -61,6 +62,7 @@ export default async function DetalleTurno({ params }: { params: Promise<{ id: s
       : Promise.resolve({ data: null }),
     sesion.role === "trabajador" ? supabase.rpc("my_overlapping_bookings", { p_job: id }) : Promise.resolve({ data: [] }),
     supabase.from("job_questions").select("id, position, prompt, kind, options, required").eq("job_id", id).order("position"),
+    sesion.role === "trabajador" ? faltantesTrabajador(supabase, sesion.id) : Promise.resolve([] as string[]),
   ]);
   const preguntas = (pregRes.data ?? []) as PreguntaPublica[];
   const padre = catRes.data?.parent_id
@@ -190,7 +192,9 @@ export default async function DetalleTurno({ params }: { params: Promise<{ id: s
               {esDueno ? (
                 <>
                   <p className="font-semibold">Este turno es tuyo</p>
-                  <p className="mt-1 text-sm text-stone-600">Pronto podrás ver y elegir postulantes desde tu panel.</p>
+                  <Link href={`/empresa/publicaciones/${id}`} className="mt-2 inline-block text-sm font-medium text-teal-800 underline">
+                    Ver postulantes
+                  </Link>
                 </>
               ) : sesion.role === "empresa" ? (
                 <p className="text-sm text-stone-600">Estás viendo este turno con una cuenta de empresa. Para postular necesitas una cuenta de trabajador.</p>
@@ -226,7 +230,17 @@ export default async function DetalleTurno({ params }: { params: Promise<{ id: s
                       Ya tienes un turno confirmado que se cruza con este horario. Puedes postular, pero no podrás aceptar ambos.
                     </p>
                   )}
-                  <FormularioPostular jobId={id} horario={horario} preguntas={preguntas} />
+                  {faltan.length ? (
+                    <div className="space-y-3 text-sm">
+                      <p>Para postular a este turno primero completa tu {faltan.join(" y tu ")}. La empresa recibirá tu currículum con la postulación.</p>
+                      <Link href={`/trabajador/perfil?paso=${faltan[0] === "currículum" ? "cv" : "datos"}`}
+                        className="block rounded-lg bg-teal-700 px-4 py-3 text-center font-semibold text-white hover:bg-teal-800">
+                        Completar mi perfil
+                      </Link>
+                    </div>
+                  ) : (
+                    <FormularioPostular jobId={id} horario={horario} preguntas={preguntas} />
+                  )}
                 </>
               ) : (
                 <p className="text-sm text-stone-600">Este turno ya no recibe postulaciones.</p>

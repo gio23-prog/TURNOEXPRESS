@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { responderOferta } from "./actions";
+import { CONDICION_ASISTENCIA } from "@/lib/condiciones";
 
 export function PanelOferta({
   jobId, offerId, resumen, vence, mensaje, hayCruce,
@@ -9,6 +10,7 @@ export function PanelOferta({
   jobId: string; offerId: string; resumen: string; vence: string; mensaje: string | null; hayCruce: boolean;
 }) {
   const [disponible, setDisponible] = useState(false);
+  const [asistencia, setAsistencia] = useState(false);
   const [justificacion, setJustificacion] = useState("");
   const [rechazar, setRechazar] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -16,7 +18,7 @@ export function PanelOferta({
 
   const responder = (aceptar: boolean) =>
     iniciar(async () => {
-      const r = await responderOferta(jobId, offerId, aceptar, disponible, hayCruce ? justificacion : undefined);
+      const r = await responderOferta(jobId, offerId, aceptar, disponible, asistencia, hayCruce ? justificacion : undefined);
       setError(r.ok ? null : r.mensaje);
     });
 
@@ -30,6 +32,11 @@ export function PanelOferta({
       <label className="flex items-start gap-2 font-medium">
         <input id="o-disponible" type="checkbox" className="mt-0.5 size-4" checked={disponible} onChange={(e) => setDisponible(e.target.checked)} />
         Confirmo que tengo disponibilidad para todo el turno
+      </label>
+
+      <label className="flex items-start gap-2 rounded-lg bg-white/70 p-3">
+        <input id="o-asistencia" type="checkbox" className="mt-0.5 size-4 shrink-0" checked={asistencia} onChange={(e) => setAsistencia(e.target.checked)} />
+        <span><span className="font-medium">Compromiso de asistencia. </span>{CONDICION_ASISTENCIA}</span>
       </label>
 
       {hayCruce && (

@@ -43,7 +43,7 @@ export default function Terminos() {
               <p>La Plataforma permite:</p>
               <ul>
                 <li>a empresas y personas con actividad comercial (&ldquo;Empresas&rdquo;), publicar turnos y servicios puntuales y elegir entre quienes postulan;</li>
-                <li>a personas que buscan trabajo por horas, por día o por servicio (&ldquo;Trabajadores&rdquo;), buscar turnos, postular y gestionar sus contrataciones;</li>
+                <li>a personas que buscan turnos por horas, por día o por servicio (&ldquo;Trabajadores&rdquo;), buscar turnos, postular y gestionar sus contrataciones;</li>
                 <li>a ambos, registrar las condiciones acordadas, la finalización del servicio, sus evaluaciones y los documentos tributarios emitidos.</li>
               </ul>
               <p>
@@ -128,6 +128,14 @@ export default function Terminos() {
               <p>
                 Las cancelaciones quedan registradas con su autor, fecha y motivo. Las cancelaciones reiteradas o sin aviso
                 pueden llevar a la suspensión de la cuenta.
+              </p>
+              <p>
+                <strong>Inasistencia.</strong> Al aceptar un turno, el Trabajador se compromete a presentarse o a cancelarlo
+                desde la Plataforma antes de su inicio. Si no se presenta sin haberlo cancelado, la Empresa puede informarlo
+                desde 15 minutos después de la hora de inicio y hasta 48 horas después del término del turno. Con ese aviso, la
+                cuenta del Trabajador se suspende automáticamente por al menos 48 horas y solo nuestro equipo puede
+                reactivarla. El Trabajador puede enviar su descargo, que revisaremos antes de decidir. Si el aviso de la
+                Empresa resulta falso, reactivaremos la cuenta de inmediato y la Empresa podrá ser suspendida.
               </p>
               <p>
                 Solo se puede evaluar un servicio finalizado. Las evaluaciones deben ser honestas y respetuosas; está prohibido

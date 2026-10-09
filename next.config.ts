@@ -7,6 +7,8 @@ const nextConfig: NextConfig = {
       // En Codespaces la página llega por *.app.github.dev pero el servidor ve localhost:3000.
       // Sin esto, Next.js rechaza los formularios ("Invalid Server Actions request").
       allowedOrigins: ["*.app.github.dev", "localhost:3000"],
+      // El CV en PDF puede pesar hasta 5 MB (más el resto del formulario).
+      bodySizeLimit: "6mb",
     },
   },
 };

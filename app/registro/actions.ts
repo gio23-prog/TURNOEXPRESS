@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { RUTA_COMPLETAR_EMPRESA } from "@/lib/empresa";
 import { registroSchema, erroresPorCampo, type RegistroInput } from "@/lib/schemas/auth";
 import { filaEmpresa, registroEmpresaSchema, type RegistroEmpresaInput } from "@/lib/schemas/empresa";
+import { registroTrabajadorSchema, type RegistroTrabajadorInput } from "@/lib/schemas/trabajador";
+import { guardarDatosPersonales } from "@/lib/trabajador";
 
 type Resultado = { ok: boolean; mensaje: string; errores?: Record<string, string>; destino?: string };
 
@@ -85,4 +87,32 @@ export async function registrarEmpresa(datos: RegistroEmpresaInput): Promise<Res
     return { ok: true, mensaje: "Cuenta creada.", destino: RUTA_COMPLETAR_EMPRESA };
   }
   return { ok: true, mensaje: "Cuenta creada.", destino: "/empresa/publicar" };
+}
+
+/** Registro de trabajador: cuenta + datos personales. Después sigue a subir el CV y completar el perfil. */
+export async function registrarTrabajador(datos: RegistroTrabajadorInput): Promise<Resultado> {
+  const parsed = registroTrabajadorSchema.safeParse(datos);
+  if (!parsed.success) {
+    return { ok: false, mensaje: "Revisa los campos marcados.", errores: erroresPorCampo(parsed.error.issues) };
+  }
+  const d = parsed.data;
+  const supabase = await createClient();
+  const origin = (await headers()).get("origin") ?? "";
+  const { data, error } = await supabase.auth.signUp({
+    email: d.email,
+    password: d.password,
+    options: {
+      emailRedirectTo: `${origin}/auth/callback`,
+      data: { full_name: d.nombre, role: "trabajador", accepted_terms: true, accepted_privacy: true },
+    },
+  });
+  if (error) {
+    return { ok: false, mensaje: "No pudimos crear la cuenta. Puede que ese correo ya esté registrado.", errores: { email: "Revisa este correo" } };
+  }
+  if (!data.session) {
+    return { ok: true, mensaje: "Cuenta creada. Revisa tu correo para confirmarla; al ingresar completarás tus datos y tu CV." };
+  }
+  const r = await guardarDatosPersonales(supabase, data.session.user.id, d);
+  // Aunque falle algún dato (por ejemplo, RUT repetido), la cuenta existe: se corrige en el perfil.
+  return { ok: true, mensaje: r.mensaje, destino: r.ok ? "/trabajador/perfil?paso=cv" : "/trabajador/perfil?paso=datos" };
 }

@@ -90,3 +90,5 @@ export function erroresEmpresa(d: EmpresaInput | RegistroEmpresaInput, registro 
   for (const i of r.error.issues) out[String(i.path[0])] ??= i.message;
   return out;
 }
+
+export { rut as campoRut, telefono as campoTelefono };

@@ -89,3 +89,13 @@ Proyecto Next.js, identidad visual, registro/ingreso con selección de rol, perf
 - /empresa/publicaciones y /empresa/publicaciones/[id]: turnos con conteos; postulantes con respuestas, "No cumple requisito", preseleccionar, descartar y enviar oferta. Al abrir la lista, los nuevos pasan a "Perfil visto".
 - Encabezado según rol. 143 pruebas de base de datos pasando.
 - Pendiente: finalización del servicio, evaluaciones y boletas en pantalla; panel de administración.
+
+## Registro del trabajador, currículum y compromiso de asistencia ✅ (09/10/2026)
+- Migración 15: datos personales privados (worker_private: dirección y comuna), RUT único, CV en PDF (bucket privado "curriculums", 5 MB), cada postulación guarda el CV enviado, versión del compromiso de asistencia en bookings, tablas y funciones de inasistencia (report_no_show, descargo, reactivación por administrador).
+- Registro del trabajador: nombre completo, correo, contraseña, teléfono, RUT, región/comuna y dirección → sube su CV → completa su perfil.
+- /trabajador/perfil en 3 pasos (Datos personales, Currículum, Perfil: nombre visible, sobre ti, experiencia, años, boleta, rubros y comunas).
+- Para postular a un turno se exige datos personales y CV; la empresa ve "Ver currículum (PDF)" en cada postulante (enlace temporal de 60 s).
+- Al aceptar un turno, el trabajador acepta el compromiso de asistencia (suspensión automática de 48 h si no se presenta sin cancelar). Cláusula agregada a los Términos.
+- Al ingresar, un trabajador con perfil incompleto va directo a /trabajador/perfil.
+- 168 pruebas de base de datos pasando.
+- En pausa (esperando decisión): pantallas para informar inasistencia, aviso de suspensión/descargo y panel de reactivación.

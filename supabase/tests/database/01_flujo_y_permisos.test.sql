@@ -102,6 +102,10 @@ set local request.jwt.claim.sub = 'a0000000-0000-0000-0000-000000000001';
 select is((select count(*)::int from job_posts where id = current_setting('t.job2')::uuid), 0, 'Trabajador no ve publicaciones en revisión');
 select throws_like($$ select apply_to_job(current_setting('t.job1')::uuid, true) $$, '%Completa tu perfil%', 'Exige perfil para postular');
 insert into worker_profiles (user_id, display_name, can_issue_boleta) values (auth.uid(), 'Carla T.', true);
+-- Datos personales y CV (requeridos para postular desde la migración 15)
+update profiles set phone = '+56912345678', rut = '5.126.663-3' where id = auth.uid();
+insert into worker_private (user_id, address_line, comuna_id) values (auth.uid(), 'Pasaje Uno 123', (select id from comunas where name = 'Santiago'));
+update worker_profiles set cv_path = auth.uid()::text || '/cv-1.pdf' where user_id = auth.uid();
 select is((select count(*)::int from search_jobs(p_quick => 'manana') where id = current_setting('t.job1')::uuid), 1,
   'El buscador encuentra el turno de mañana');
 select is((select count(*)::int from search_jobs(p_category => (select id from categories where slug = 'gastronomia'))
@@ -116,6 +120,10 @@ select throws_like($$ select apply_to_job(current_setting('t.job1')::uuid, true)
 
 set local request.jwt.claim.sub = 'a0000000-0000-0000-0000-000000000002';
 insert into worker_profiles (user_id, display_name, is_public) values (auth.uid(), 'Diego', false);
+-- Datos personales y CV (requeridos para postular desde la migración 15)
+update profiles set phone = '+56912345678', rut = '6.000.000-K' where id = auth.uid();
+insert into worker_private (user_id, address_line, comuna_id) values (auth.uid(), 'Pasaje Uno 123', (select id from comunas where name = 'Santiago'));
+update worker_profiles set cv_path = auth.uid()::text || '/cv-1.pdf' where user_id = auth.uid();
 select set_config('t.app2', apply_to_job(current_setting('t.job1')::uuid, true)::text, true);
 select is((select count(*)::int from applications where worker_id = 'a0000000-0000-0000-0000-000000000001'), 0,
   'Un trabajador no ve postulaciones de otro');
@@ -154,9 +162,9 @@ select set_config('t.offer1', send_offer(current_setting('t.app1')::uuid, 'Te es
 select throws_like($$ select send_offer(current_setting('t.app2')::uuid) $$, '%cupos%', 'No permite ofertar más que los cupos');
 
 set local request.jwt.claim.sub = 'a0000000-0000-0000-0000-000000000001';
-select throws_like($$ select respond_offer(current_setting('t.offer1')::uuid, true, false) $$, '%disponibilidad%',
+select throws_like($$ select respond_offer(current_setting('t.offer1')::uuid, true, false, null, 'test') $$, '%disponibilidad%',
   'Aceptar exige confirmar disponibilidad');
-select set_config('t.book1', respond_offer(current_setting('t.offer1')::uuid, true, true)::text, true);
+select set_config('t.book1', respond_offer(current_setting('t.offer1')::uuid, true, true, null, 'test')::text, true);
 select is((select status::text from bookings where id = current_setting('t.book1')::uuid), 'confirmada', 'Contratación confirmada');
 select is((select terms_snapshot->>'monto_clp' from bookings where id = current_setting('t.book1')::uuid), '30000',
   'Se guarda el resumen de condiciones');
@@ -195,10 +203,10 @@ select is((select count(*)::int from my_overlapping_bookings(current_setting('t.
 set local request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000002';
 select set_config('t.offer3', send_offer(current_setting('t.app3')::uuid)::text, true);
 set local request.jwt.claim.sub = 'a0000000-0000-0000-0000-000000000001';
-select throws_like($$ select respond_offer(current_setting('t.offer3')::uuid, true, true) $$, '%se superpone%',
+select throws_like($$ select respond_offer(current_setting('t.offer3')::uuid, true, true, null, 'test') $$, '%se superpone%',
   'Bloquea contrataciones con horarios superpuestos');
 select lives_ok($$ select set_config('t.book3', respond_offer(current_setting('t.offer3')::uuid, true, true,
-  'El evento es en el mismo local y la empresa 1 lo autorizó por escrito')::text, true) $$,
+  'El evento es en el mismo local y la empresa 1 lo autorizó por escrito', 'test')::text, true) $$,
   'Permite superposición con justificación explícita');
 
 -- Cancelación con registro

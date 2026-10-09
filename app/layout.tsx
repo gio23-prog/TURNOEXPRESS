@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "TurnoExpress",
-  description: "Turnos y trabajos por horas en todo Chile. Publica un turno en minutos o encuentra trabajo cerca de ti.",
+  description: "Turnos por horas, por día y de fin de semana en todo Chile. Publica un turno en minutos o postula a turnos cerca de ti.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

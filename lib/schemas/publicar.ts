@@ -135,7 +135,7 @@ const idNumerico = (msg: string) => z.string().regex(/^\d+$/, msg);
 export const paso1 = z.object({
   categoria: idNumerico("Elige una categoría"),
   titulo: z.string().trim().min(5, "Escribe un título de al menos 5 caracteres").max(80, "Máximo 80 caracteres"),
-  descripcion: z.string().trim().min(20, "Describe el trabajo en al menos 20 caracteres").max(1000, "Máximo 1000 caracteres"),
+  descripcion: z.string().trim().min(20, "Describe el turno en al menos 20 caracteres").max(1000, "Máximo 1000 caracteres"),
   cupos: z.number().int("Debe ser un número entero").min(1, "Mínimo 1 cupo").max(20, "Máximo 20 cupos"),
 });
 

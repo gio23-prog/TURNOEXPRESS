@@ -72,6 +72,10 @@ select is((select count(*)::int from my_job_questions(current_setting('t.job')::
 -- ============================================================ Trabajadores
 set local request.jwt.claim.sub = 'a1000000-0000-0000-0000-000000000001';
 insert into worker_profiles (user_id, display_name) values (auth.uid(), 'Trabajador U.');
+-- Datos personales y CV (requeridos para postular desde la migración 15)
+update profiles set phone = '+56912345678', rut = '7.000.000-8' where id = auth.uid();
+insert into worker_private (user_id, address_line, comuna_id) values (auth.uid(), 'Pasaje Uno 123', (select id from comunas where name = 'Santiago'));
+update worker_profiles set cv_path = auth.uid()::text || '/cv-1.pdf' where user_id = auth.uid();
 select is((select count(*)::int from job_questions where job_id = current_setting('t.job')::uuid), 4, 'El trabajador ve las preguntas');
 select throws_ok($$ select disqualifying from job_questions $$, '42501', null, 'El trabajador no puede ver las respuestas excluyentes');
 select throws_ok($$ select * from my_job_questions(current_setting('t.job')::uuid) $$, 'P0002', null,
@@ -89,6 +93,10 @@ select lives_ok($$ select set_config('t.app1', apply_to_job(current_setting('t.j
 
 set local request.jwt.claim.sub = 'a1000000-0000-0000-0000-000000000002';
 insert into worker_profiles (user_id, display_name) values (auth.uid(), 'Trabajador D.');
+-- Datos personales y CV (requeridos para postular desde la migración 15)
+update profiles set phone = '+56912345678', rut = '8.000.000-6' where id = auth.uid();
+insert into worker_private (user_id, address_line, comuna_id) values (auth.uid(), 'Pasaje Uno 123', (select id from comunas where name = 'Santiago'));
+update worker_profiles set cv_path = auth.uid()::text || '/cv-1.pdf' where user_id = auth.uid();
 select lives_ok($$ select set_config('t.app2', apply_to_job(current_setting('t.job')::uuid, true, null, null,
   jsonb_build_object(current_setting('t.q1'), 'no', current_setting('t.q2'), '1 a 3'))::text, true) $$,
   'Postula con una respuesta excluyente');

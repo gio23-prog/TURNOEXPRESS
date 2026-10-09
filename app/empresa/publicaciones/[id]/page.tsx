@@ -10,7 +10,7 @@ import { AccionesPostulante } from "./acciones";
 
 type Postulante = {
   id: string; status: string; created_at: string; updated_at: string; worker_id: string;
-  message: string | null; highlighted_experience: string | null; disqualified: boolean;
+  message: string | null; highlighted_experience: string | null; disqualified: boolean; cv_path: string | null;
   worker_profiles: { display_name: string; years_experience: number | null; can_issue_boleta: boolean; bio: string | null } | null;
   application_answers: { question_id: string; answer: string }[];
   offers: { status: string; expires_at: string }[];
@@ -42,7 +42,7 @@ export default async function PostulantesTurno({
   const { data: appsRaw } = await supabase
     .from("applications")
     .select(
-      "id, status, created_at, updated_at, worker_id, message, highlighted_experience, disqualified, " +
+      "id, status, created_at, updated_at, worker_id, message, highlighted_experience, disqualified, cv_path, " +
       "worker_profiles(display_name, years_experience, can_issue_boleta, bio), application_answers(question_id, answer), offers(status, expires_at)"
     )
     .eq("job_id", id)
@@ -139,6 +139,12 @@ export default async function PostulantesTurno({
                         {w?.can_issue_boleta && <> · Emite boleta</>}
                       </p>
                       <p className="text-xs text-stone-500">Postuló {haceTiempo(p.created_at).toLowerCase()}</p>
+                      {p.cv_path && (
+                        <a href={`/empresa/publicaciones/${id}/cv/${p.id}`} target="_blank" rel="noopener"
+                          className="mt-1 inline-block text-sm font-medium text-teal-800 underline">
+                          Ver currículum (PDF)
+                        </a>
+                      )}
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       {p.disqualified && (

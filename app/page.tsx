@@ -42,8 +42,8 @@ export default async function Inicio() {
               Turnos cubiertos hoy, en todo Chile.
             </h1>
             <p className="mt-4 max-w-prose text-lg text-stone-600">
-              Si a tu negocio le falta alguien para el turno de esta noche, publícalo en minutos. Si buscas trabajo por
-              horas, por día o de fin de semana, encuentra turnos cerca de ti.
+              Si a tu negocio le falta alguien para el turno de esta noche, publícalo en minutos. Si buscas turnos por
+              horas, por día o de fin de semana, postula a los que están cerca de ti.
             </p>
 
             {perfil ? (
@@ -172,8 +172,8 @@ export default async function Inicio() {
               <li>
                 <p className="font-semibold text-white">Modalidad revisada</p>
                 <p className="mt-1 text-sm text-stone-300">
-                  Si un turno tiene indicios de relación laboral, lo revisamos antes de publicarlo. No todo trabajo por
-                  horas se puede pagar con boleta de honorarios.
+                  Si un turno a honorarios tiene indicios de relación laboral, te indicamos el contrato que corresponde y lo
+                  revisamos después de publicado. No todo turno se puede pagar con boleta de honorarios.
                 </p>
               </li>
               <li>

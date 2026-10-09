@@ -32,6 +32,9 @@ export default function Encabezado({ sesion }: { sesion: Sesion }) {
               <span className="hidden sm:inline">Mis postulaciones</span>
             </Link>
           )}
+          {sesion?.role === "trabajador" && (
+            <Link href="/trabajador/perfil" className="rounded-lg px-2 py-2 font-medium text-stone-700 hover:bg-stone-100 sm:px-3">Mi perfil</Link>
+          )}
           {sesion?.role === "empresa" && (
             <>
               <Link href="/empresa/publicaciones" className="rounded-lg px-2 py-2 font-medium text-stone-700 hover:bg-stone-100 sm:px-3">Mis turnos</Link>

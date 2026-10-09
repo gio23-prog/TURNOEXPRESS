@@ -30,3 +30,18 @@
 **12. Oficios regulados**: instalaciones eléctricas o de gas exigen autorización SEC; la subcategoría "Apoyo en instalaciones" ya lo advierte, pero debe definirse si se permite.
 **13. Remuneraciones mínimas**: el sistema no inventa un mínimo por modalidad. Si un turno se ejecuta como relación laboral, aplica el ingreso mínimo mensual proporcional; el abogado debe validar las advertencias de tarifa que mostrará la interfaz.
 **14. Edad mínima**: el registro debe exigir mayoría de edad (o reglas específicas para mayores de 15 con autorización, a confirmar). Decidir y aplicar en la Etapa 2.
+
+## D. Estado de implementación (ver docs/AUDITORIA.md)
+
+**Posicionamiento decidido (09/10/2026):** Turnoexpress opera como **medio de difusión** de ofertas, al estilo de un portal de empleo. No es empleador, no contrata, no paga ni garantiza empleo.
+
+| Punto | Estado |
+|---|---|
+| Aviso de medio de difusión en interfaz, antes de publicar y de postular | ✅ Etapa 1 (validado también en servidor) |
+| Términos, privacidad y aviso legal | 🟡 Borradores publicados y marcados "pendiente de revisión legal". Faltan responsable, RUT, contacto y proveedores. |
+| Versión aceptada de los documentos | ⏳ Etapa 2 (`terms_version`) |
+| Congelar ofertas, contrataciones, boletas y comisión; pasar a "contactar" | ⏳ Etapa 2 (autorizado) |
+| Mayoría de edad (migración 6) | ⏳ Autorizado aplicarla en Supabase |
+| Documentos del trabajador (antecedentes solo con justificación, sin filtro automático) | ⏳ Etapa 6. Sin escaneo de malware pagado: validación estricta de tipo y tamaño. |
+| Retención de documentos | 🟡 Plazos de docs/AUDITORIA.md §4 aceptados como borrador para el abogado |
+| Cobro recurrente y prueba gratis | ⏳ Etapa 7 (apagado, sin interfaz) |

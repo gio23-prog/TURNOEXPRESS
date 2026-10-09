@@ -87,7 +87,7 @@ export default async function DetalleTurno({ params }: PageProps<"/trabajos/[id]
           </div>
         ))}
       </dl>
-      <p className="mt-2 text-xs text-texto-tenue">La dirección exacta se comparte solo con quien sea contratado.</p>
+      <p className="mt-2 text-xs text-texto-tenue">La dirección exacta no se publica: la empresa la comparte cuando te contacta.</p>
 
       <section className="mt-6">
         <h2 className="font-medium text-marino">Descripción</h2>
@@ -108,7 +108,7 @@ export default async function DetalleTurno({ params }: PageProps<"/trabajos/[id]
 
       <section className="mt-8 rounded-lg border border-borde bg-fondo-suave p-4">
         {postulacion ? (
-          <p className="text-sm text-marino">
+          <p role="status" className="text-sm text-marino">
             Ya postulaste a este turno. Estado: <strong>{ESTADO_POSTULACION[postulacion.status] ?? postulacion.status}</strong>.{" "}
             <Link href="/trabajador/postulaciones" className="font-medium text-turquesa-oscuro underline">Ver mis postulaciones</Link>
           </p>

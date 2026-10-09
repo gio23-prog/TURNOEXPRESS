@@ -34,5 +34,5 @@ export async function postular(jobId: string, datos: PostularInput): Promise<Res
 
   revalidatePath(`/trabajos/${jobId}`);
   revalidatePath("/trabajador/postulaciones");
-  return { ok: true, mensaje: "Postulación enviada. La empresa revisará tu perfil y te avisaremos si te hace una oferta." };
+  return { ok: true, mensaje: "Postulación enviada. La empresa revisará tu postulación y, si le interesa, te contactará." };
 }

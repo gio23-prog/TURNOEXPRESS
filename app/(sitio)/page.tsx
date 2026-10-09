@@ -2,8 +2,8 @@ import Link from "next/link";
 
 const PASOS = [
   { titulo: "Publica en minutos", texto: "Indica qué necesitas, cuándo y cuánto pagas. El valor por hora se calcula solo." },
-  { titulo: "Recibe postulaciones", texto: "Personas disponibles en tu comuna postulan y tú eliges a quién ofrecer el turno." },
-  { titulo: "Confirma y evalúa", texto: "Las condiciones quedan registradas y ambas partes se evalúan al terminar." },
+  { titulo: "Recibe postulaciones", texto: "Personas disponibles en tu comuna postulan con su perfil." },
+  { titulo: "Conversa y decide", texto: "Contacta a quien te interese y acuerden directamente las condiciones del turno." },
 ];
 
 export default function Inicio() {
@@ -33,10 +33,6 @@ export default function Inicio() {
           </div>
         ))}
       </section>
-
-      <footer className="border-t border-borde px-6 py-6 text-center text-sm text-texto-tenue">
-        Turnoexpress · Región Metropolitana · La plataforma conecta a las partes; no es empleadora ni emite documentos tributarios.
-      </footer>
     </main>
   );
 }

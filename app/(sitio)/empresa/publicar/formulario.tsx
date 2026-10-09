@@ -1,17 +1,19 @@
 "use client";
 
 import { useState, useTransition, type ReactNode } from "react";
+import Link from "next/link";
 import {
   PREGUNTAS_MODALIDAD,
   PREGUNTA_REEMPLAZO,
   calcularDuracion,
   calcularPago,
   nivelRiesgo,
-  requiereAdvertencia,
   validarPaso,
+  validarTodo,
   type Borrador,
 } from "@/lib/schemas/publicar";
 import { publicarTurno } from "./actions";
+import { AVISO_MEDIO, COMPROMISO_PUBLICAR } from "@/lib/legal";
 
 const PASOS = ["Qué", "Cuándo y dónde", "Pago y condiciones", "Modalidad", "Vista previa"];
 
@@ -19,7 +21,7 @@ const inicial: Borrador = {
   categoria: "", titulo: "", descripcion: "", cupos: "1",
   fecha: "", inicio: "09:00", termino: "17:00", comuna: "", direccion: "", urgente: false,
   modoPago: "total", monto: "", pausas: "", vestimenta: "", alimentacion: false, transporte: false,
-  respuestas: {}, confirmaAdvertencia: false,
+  respuestas: {}, confirmaAdvertencia: false, aceptaCompromiso: false,
 };
 
 const clp = (n: number) =>
@@ -85,8 +87,9 @@ export default function Formulario({ categorias, comunas }: { categorias: Catego
   }
 
   function publicar() {
-    if (requiereAdvertencia(d.respuestas) && !d.confirmaAdvertencia) {
-      setErr({ confirmaAdvertencia: "Confirma que leíste la advertencia" });
+    const e = validarTodo(d);
+    if (e.confirmaAdvertencia || e.aceptaCompromiso) {
+      setErr(e);
       return;
     }
     iniciar(async () => {
@@ -114,7 +117,7 @@ export default function Formulario({ categorias, comunas }: { categorias: Catego
   }
 
   return (
-    <main className="mx-auto max-w-xl p-4 pb-24 sm:p-6">
+    <main className="mx-auto w-full max-w-xl flex-1 px-4 pt-4 sm:px-6 sm:pt-6">
       <header className="mb-6">
         <h1 className="text-2xl font-semibold text-marino">Publicar un turno</h1>
         <p className="mt-1 text-sm text-texto-suave">Paso {paso + 1} de {PASOS.length}: {PASOS[paso]}</p>
@@ -171,7 +174,7 @@ export default function Formulario({ categorias, comunas }: { categorias: Catego
                 {comunas.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
               </select>
             </Campo>
-            <Campo label="Dirección exacta (solo la verá quien sea contratado)" error={err.direccion}>
+            <Campo label="Dirección exacta (no se publica; solo la verá quien tú decidas contactar)" error={err.direccion}>
               <input className={input} value={d.direccion} onChange={(e) => set("direccion", e.target.value)} />
             </Campo>
             <label className="flex items-center gap-2 text-sm text-texto-suave">
@@ -268,7 +271,7 @@ export default function Formulario({ categorias, comunas }: { categorias: Catego
                 </p>
                 <p className="mt-1">
                   {riesgo === "alto" && "Quedará en revisión antes de ser visible. "}
-                  Si en la práctica es una relación laboral, corresponde contrato de trabajo y no boleta de honorarios. Revisa la guía de modalidad.
+                  Si en la práctica es una relación laboral, corresponde contrato de trabajo y no boleta de honorarios. Esta orientación no es asesoría legal.
                 </p>
                 <label className="mt-3 flex items-start gap-2">
                   <input type="checkbox" className="mt-1" checked={d.confirmaAdvertencia} onChange={(e) => set("confirmaAdvertencia", e.target.checked)} />
@@ -279,12 +282,28 @@ export default function Formulario({ categorias, comunas }: { categorias: Catego
             ) : (
               <p className="text-sm text-texto-suave">Riesgo de modalidad {riesgo}. El resultado final lo confirma el sistema al publicar.</p>
             )}
+            <fieldset className="rounded-lg border border-borde bg-fondo-suave p-3 text-sm text-texto-suave">
+              <legend className="px-1 font-medium text-marino">Antes de publicar</legend>
+              <p>{AVISO_MEDIO}</p>
+              <ul className="mt-2 space-y-1">
+                {COMPROMISO_PUBLICAR.map((c) => <li key={c} className="ml-5 list-disc">{c}</li>)}
+              </ul>
+              <label className="mt-3 flex items-start gap-2 text-marino">
+                <input type="checkbox" className="mt-1" checked={d.aceptaCompromiso} onChange={(e) => set("aceptaCompromiso", e.target.checked)} />
+                <span>
+                  Acepto estos compromisos y los{" "}
+                  <Link href="/terminos" target="_blank" className="font-medium text-turquesa-oscuro underline">términos de uso</Link>.
+                </span>
+              </label>
+              {err.aceptaCompromiso && <p role="alert" className="mt-1 text-red-700">{err.aceptaCompromiso}</p>}
+            </fieldset>
             {msg && !msg.ok && <p role="alert" className="text-sm text-red-700">{msg.texto}</p>}
           </>
         )}
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 border-t border-borde bg-white/95 p-3 backdrop-blur">
+      {/* sticky: queda pegada abajo al desplazarse, pero no tapa el pie de página */}
+      <div className="sticky bottom-0 -mx-4 mt-6 border-t border-borde bg-white/95 p-3 backdrop-blur sm:-mx-6">
         <div className="mx-auto flex max-w-xl gap-3">
           {paso > 0 && (
             <button type="button" onClick={() => { setErr({}); setPaso((p) => p - 1); }} className="rounded-lg border border-borde-fuerte px-4 py-3 font-medium text-texto-suave">

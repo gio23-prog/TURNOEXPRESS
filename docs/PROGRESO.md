@@ -42,3 +42,12 @@ Proyecto Next.js, identidad visual, registro/ingreso con selección de rol, perf
 - Inicio del trabajador tras ingresar: `/trabajos`. Sin cambios de esquema ni RLS.
 - Probado en local con PostgREST + sesión simulada: buscar y filtrar, postular (validación de disponibilidad), ver estado, retirar, redirecciones por rol.
 - Pendiente: responder ofertas (`respond_offer`), perfil editable del trabajador, lado empresa de postulaciones.
+
+## Fase 2 · Etapa 1 — Encuadre legal en la interfaz (09/10/2026)
+- Textos sin lenguaje de contratación ("quien sea contratado", "te hace una oferta", "Oferta recibida", "Confirma y evalúa").
+- Aviso de medio de difusión y casilla obligatoria antes de publicar (compromisos de la empresa) y antes de postular; validados también en el servidor.
+- Borradores de `/terminos`, `/privacidad` y `/aviso-legal`, marcados "pendiente de revisión legal", con versión (`lib/legal.ts`).
+- Registro con enlaces a términos y privacidad; pie de página legal en todo el sitio; aviso en ingreso y registro.
+- Páginas 404, error de página y error global con la marca.
+- Probado en local (PostgREST + sesión simulada): páginas legales, 404, postular sin y con aviso, publicar sin y con compromisos.
+- Pendiente: guardar la versión aceptada (`terms_version`, etapa 2); textos de correos (etapa 10).

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { registrar } from "./actions";
 import { LogoCompleto } from "@/components/Logo";
+import { AVISO_MEDIO } from "@/lib/legal";
 import type { RegistroInput } from "@/lib/schemas/auth";
 
 const input =
@@ -94,7 +95,11 @@ export default function Registro() {
 
           <label className="flex items-start gap-2 text-sm text-texto-suave">
             <input type="checkbox" className="mt-1" checked={d.consentimiento} onChange={(e) => set("consentimiento", e.target.checked)} />
-            Acepto los términos de uso y la política de privacidad.
+            <span>
+              Acepto los <Link href="/terminos" target="_blank" className="font-medium text-turquesa-oscuro underline">términos de uso</Link> y
+              la <Link href="/privacidad" target="_blank" className="font-medium text-turquesa-oscuro underline">política de privacidad</Link>.
+              Entiendo que Turnoexpress es un medio de difusión y no un empleador.
+            </span>
           </label>
           {err.consentimiento && <p role="alert" className="text-sm text-red-700">{err.consentimiento}</p>}
 
@@ -114,6 +119,10 @@ export default function Registro() {
 
       <p className="mt-6 text-sm text-texto-suave">
         ¿Ya tienes cuenta? <Link href="/ingresar" className="font-medium text-turquesa-oscuro underline">Ingresar</Link>
+      </p>
+      <p className="mt-8 text-xs text-texto-tenue">
+        {AVISO_MEDIO}{" "}
+        <Link href="/aviso-legal" className="underline">Aviso legal</Link>
       </p>
     </main>
   );

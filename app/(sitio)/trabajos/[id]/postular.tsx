@@ -3,12 +3,13 @@
 import { useState, useTransition } from "react";
 import { postular } from "./actions";
 import type { PostularInput } from "@/lib/schemas/postular";
+import { COMPROMISO_POSTULAR } from "@/lib/legal";
 
 const input =
   "w-full rounded-lg border border-borde-fuerte bg-white px-3 py-2 text-marino focus:outline-none focus:ring-2 focus:ring-turquesa";
 
 export default function Postular({ jobId, aviso }: { jobId: string; aviso?: string }) {
-  const [d, setD] = useState<PostularInput>({ disponible: false, mensaje: "", experiencia: "" });
+  const [d, setD] = useState<PostularInput>({ disponible: false, mensaje: "", experiencia: "", aceptaAviso: false });
   const [err, setErr] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
   const [pendiente, iniciar] = useTransition();
@@ -47,6 +48,11 @@ export default function Postular({ jobId, aviso }: { jobId: string; aviso?: stri
         Confirmo que tengo disponibilidad para todo el horario del turno.
       </label>
       {err.disponible && <p role="alert" className="text-sm text-red-700">{err.disponible}</p>}
+      <label className="flex items-start gap-2 text-sm text-texto-suave">
+        <input type="checkbox" className="mt-1" checked={d.aceptaAviso} onChange={(e) => set("aceptaAviso", e.target.checked)} />
+        <span>{COMPROMISO_POSTULAR}</span>
+      </label>
+      {err.aceptaAviso && <p role="alert" className="text-sm text-red-700">{err.aceptaAviso}</p>}
       {msg && !msg.ok && <p role="alert" className="text-sm text-red-700">{msg.texto}</p>}
       <button disabled={pendiente} className="w-full rounded-lg bg-turquesa-oscuro px-4 py-3 font-medium text-white hover:bg-turquesa-hover disabled:opacity-60">
         {pendiente ? "Enviando..." : "Postular"}

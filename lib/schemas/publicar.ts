@@ -38,6 +38,7 @@ export type Borrador = {
   transporte: boolean;
   respuestas: Record<string, boolean | undefined>; // q_* de modalidad + q_replaces_staff
   confirmaAdvertencia: boolean;
+  aceptaCompromiso: boolean; // compromisos de lib/legal.ts (medio de difusión)
 };
 
 const hora = z.string().regex(/^\d{2}:\d{2}$/, "Ingresa una hora válida");
@@ -114,5 +115,6 @@ export function validarTodo(d: Borrador): Record<string, string> {
   if (requiereAdvertencia(d.respuestas) && !d.confirmaAdvertencia) {
     e.confirmaAdvertencia = "Confirma que leíste la advertencia";
   }
+  if (!d.aceptaCompromiso) e.aceptaCompromiso = "Debes aceptar los compromisos para publicar";
   return e;
 }

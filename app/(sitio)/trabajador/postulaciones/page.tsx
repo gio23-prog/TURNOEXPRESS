@@ -62,7 +62,7 @@ export default async function MisPostulaciones() {
                 </p>
               )}
               {a.status === "oferta_enviada" && (
-                <p className="mt-2 text-sm text-marino">La empresa te envió una oferta. Pronto podrás responderla desde aquí.</p>
+                <p className="mt-2 text-sm text-marino">La empresa quiere contactarte. Pronto podrás responderle desde aquí.</p>
               )}
               {ESTADOS_RETIRABLES.includes(a.status) && <div className="mt-3"><Retirar appId={a.id} /></div>}
             </li>

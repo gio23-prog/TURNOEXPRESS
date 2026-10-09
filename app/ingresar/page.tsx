@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { ingresar } from "./actions";
 import { LogoCompleto } from "@/components/Logo";
+import { AVISO_MEDIO } from "@/lib/legal";
 
 const input =
   "w-full rounded-lg border border-borde-fuerte bg-white px-3 py-2 text-marino focus:outline-none focus:ring-2 focus:ring-turquesa";
@@ -50,6 +51,10 @@ export default function Ingresar() {
       </form>
       <p className="mt-6 text-sm text-texto-suave">
         ¿No tienes cuenta? <Link href="/registro" className="font-medium text-turquesa-oscuro underline">Crear cuenta</Link>
+      </p>
+      <p className="mt-8 text-xs text-texto-tenue">
+        {AVISO_MEDIO}{" "}
+        <Link href="/aviso-legal" className="underline">Aviso legal</Link>
       </p>
     </main>
   );

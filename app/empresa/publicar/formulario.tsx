@@ -16,14 +16,15 @@ import {
 } from "@/lib/schemas/publicar";
 import { publicarTurno } from "./actions";
 import EditorPreguntas from "./preguntas";
+import { NORMAS, TIPOS_CONTRATO, nombreContrato } from "@/lib/reglas-publicacion";
 
-const PASOS = ["Qué", "Cuándo y dónde", "Pago y condiciones", "Preguntas", "Modalidad", "Vista previa"];
+const PASOS = ["Qué", "Cuándo y dónde", "Pago y condiciones", "Preguntas", "Contratación", "Vista previa"];
 
 const inicial: Borrador = {
   categoria: "", titulo: "", descripcion: "", cupos: "1",
   fecha: "", inicio: "09:00", termino: "17:00", region: "", comuna: "", direccion: "", urgente: false,
   modoPago: "total", monto: "", pausas: "", vestimenta: "", alimentacion: false, transporte: false,
-  preguntas: [], respuestas: {}, confirmaAdvertencia: false,
+  preguntas: [], respuestas: {}, contrato: "", confirmaAdvertencia: false,
 };
 
 const clp = (n: number) =>
@@ -82,7 +83,8 @@ export default function FormularioPublicar({
   const mins = calcularDuracion(d.inicio, d.termino);
   const pago = calcularPago(d);
   const riesgo = nivelRiesgo(d.respuestas);
-  const aviso = requiereAviso(d.respuestas);
+  const aviso = requiereAviso(d);
+  const pagoAlto = pago.valorHora > 40000;
   const nombreCategoria = categorias.flatMap((c) => c.subcategorias.map((s) => ({ ...s, padre: c.nombre })))
     .find((s) => String(s.id) === d.categoria);
   const nombreComuna = comunas.find((c) => String(c.id) === d.comuna)?.nombre ?? "";
@@ -135,6 +137,12 @@ export default function FormularioPublicar({
       <div className="space-y-4">
         {paso === 0 && (
           <>
+            <details className="rounded-lg border border-stone-200 bg-white p-3 text-sm text-stone-700">
+              <summary className="cursor-pointer font-medium text-stone-900">Normas de publicación</summary>
+              <ul className="mt-2 list-disc space-y-1 pl-5">
+                {NORMAS.map((n) => <li key={n}>{n}</li>)}
+              </ul>
+            </details>
             <Campo label="Categoría" error={err.categoria}>
               <select className={input} value={d.categoria} onChange={(e) => set("categoria", e.target.value)}>
                 <option value="">Elige una categoría</option>
@@ -237,8 +245,37 @@ export default function FormularioPublicar({
 
         {paso === 4 && (
           <>
+            <fieldset>
+              <legend className="mb-2 text-sm font-medium text-stone-700">¿Cómo vas a contratar este turno?</legend>
+              <div className="grid gap-2 sm:grid-cols-2">
+                {TIPOS_CONTRATO.map((t) => (
+                  <label key={t.id}
+                    className={`flex cursor-pointer gap-3 rounded-lg border p-3 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-teal-700 ${
+                      d.contrato === t.id ? "border-teal-700 bg-teal-50" : "border-stone-300 bg-white"}`}>
+                    <input id={`contrato-${t.id}`} type="radio" name="contrato" className="mt-1" checked={d.contrato === t.id}
+                      onChange={() => setD((p) => ({ ...p, contrato: t.id, confirmaAdvertencia: false }))} />
+                    <span>
+                      <span className="block font-medium text-stone-900">{t.nombre}</span>
+                      <span className="block text-sm text-stone-600">{t.ayuda}</span>
+                    </span>
+                  </label>
+                ))}
+              </div>
+              {err.contrato && <p role="alert" className="mt-1 text-sm text-red-700">{err.contrato}</p>}
+            </fieldset>
+
+            {d.contrato && d.contrato !== "honorarios" && (
+              <p className="rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm text-teal-900">
+                Con contrato de trabajo tu empresa asume las obligaciones laborales: contrato escrito, cotizaciones
+                previsionales y pago de la remuneración acordada. El turno se publica sin revisión adicional.
+              </p>
+            )}
+
+            {d.contrato === "honorarios" && (
+            <>
             <p className="text-sm text-stone-600">
-              Estas preguntas nos ayudan a evaluar si el trabajo se parece más a un servicio independiente o a una relación laboral.
+              Con boleta de honorarios, la persona presta un servicio independiente. Estas preguntas nos ayudan a confirmar
+              que no se trata en la práctica de una relación laboral. Si hay 3 o más indicios, revisamos el turno antes de publicarlo.
             </p>
             {PREGUNTAS_MODALIDAD.map((p) => (
               <div key={p.id} className="rounded-lg border border-stone-200 bg-white p-3">
@@ -247,6 +284,8 @@ export default function FormularioPublicar({
                 {err[p.id] && <p role="alert" className="mt-1 text-sm text-red-700">{err[p.id]}</p>}
               </div>
             ))}
+            </>
+            )}
           </>
         )}
 
@@ -261,6 +300,7 @@ export default function FormularioPublicar({
                 ["Horario", `${d.inicio} a ${d.termino} (${Math.floor(mins / 60)} h ${mins % 60} min)`],
                 ["Ubicación", nombreComuna ? `${nombreComuna}, ${nombreRegion}` : ""],
                 ["Pago", `${clp(pago.total)} total, ${clp(pago.valorHora)} por hora`],
+                ["Contratación", nombreContrato(d.contrato)],
                 ["Condiciones", [d.alimentacion && "alimentación", d.transporte && "transporte"].filter(Boolean).join(" y ") || "Sin extras"],
                 ["Preguntas", d.preguntas.length ? `${d.preguntas.length} para los postulantes` : "Sin preguntas"],
               ].map(([k, v]) => (
@@ -287,8 +327,14 @@ export default function FormularioPublicar({
                 </label>
                 {err.confirmaAdvertencia && <p role="alert" className="mt-1 text-red-700">{err.confirmaAdvertencia}</p>}
               </div>
-            ) : (
-              <p className="text-sm text-stone-600">Riesgo de modalidad {riesgo}. El resultado final lo confirma el sistema al publicar.</p>
+            ) : d.contrato === "honorarios" ? (
+              <p className="text-sm text-stone-600">Sin indicios relevantes de relación laboral. El resultado final lo confirma el sistema al publicar.</p>
+            ) : null}
+            {pagoAlto && (
+              <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                El pago por hora ({clp(pago.valorHora)}) es inusualmente alto. Revisaremos el turno antes de publicarlo
+                para proteger a los trabajadores de ofertas engañosas. Si es un error, vuelve al paso 3 y corrige el monto.
+              </p>
             )}
             {msg && !msg.ok && <p role="alert" className="text-sm text-red-700">{msg.texto}</p>}
           </>

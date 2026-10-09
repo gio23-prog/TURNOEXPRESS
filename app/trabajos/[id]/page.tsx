@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { clp, diaRelativo, duracion, esUUID, fecha, hora } from "@/lib/formato";
 import Encabezado, { obtenerSesion } from "@/app/componentes/encabezado";
+import { nombreContrato } from "@/lib/reglas-publicacion";
 import { BotonRetirar, FormularioPostular, type PreguntaPublica } from "./postular";
 
 const ESTADO_POSTULACION: Record<string, string> = {
@@ -55,7 +56,7 @@ export default async function DetalleTurno({ params }: { params: Promise<{ id: s
     .select(
       "id, business_id, title, description, slots, starts_at, ends_at, duration_minutes, modality, approx_location, " +
         "pay_type, pay_amount_clp, hourly_equivalent_clp, estimated_total_clp, breaks_info, conditions, experience_required, " +
-        "certifications_required, attire, food_info, transport_info, additional_requirements, apply_deadline, is_urgent, status, " +
+        "certifications_required, attire, food_info, transport_info, additional_requirements, apply_deadline, is_urgent, status, contract_type, " +
         "category_id, comunas(name, regions(name))"
     )
     .eq("id", id)
@@ -131,6 +132,10 @@ export default async function DetalleTurno({ params }: { params: Promise<{ id: s
               <div><dt className="text-stone-500">Pago total</dt><dd className="font-semibold">{clp(t.estimated_total_clp)}</dd></div>
               <div><dt className="text-stone-500">Por hora</dt><dd className="font-semibold">{clp(t.hourly_equivalent_clp)}</dd></div>
               <div><dt className="text-stone-500">Cupos</dt><dd className="font-semibold">{t.slots}</dd></div>
+              <div className="col-span-2 sm:col-span-3">
+                <dt className="text-stone-500">Contratación</dt>
+                <dd className="font-semibold">{nombreContrato(t.contract_type)}</dd>
+              </div>
               <div className="col-span-2 sm:col-span-3">
                 <dt className="text-stone-500">Lugar</dt>
                 <dd className="font-semibold">

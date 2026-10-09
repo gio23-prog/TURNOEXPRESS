@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { problemaTexto, problemaTitulo, type TipoContrato } from "@/lib/reglas-publicacion";
 
 // Las categorías y comunas se cargan desde Supabase (tablas `categories` y `comunas`).
 export type Categoria = { id: number; nombre: string; subcategorias: { id: number; nombre: string }[] };
@@ -67,7 +68,9 @@ export function validarPreguntas(ps: PreguntaEmpleador[]): Record<string, string
   ps.forEach((p, i) => {
     const k = `pregunta-${i}`;
     const t = p.texto.trim();
+    const contenido = problemaTexto(`${t} ${p.tipo === "opcion" ? p.opciones : ""}`);
     if (t.length < 5) e[k] = "Escribe la pregunta (mínimo 5 caracteres)";
+    else if (contenido) e[k] = contenido;
     else if (t.length > MAX_LARGO_PREGUNTA) e[k] = `Máximo ${MAX_LARGO_PREGUNTA} caracteres`;
     else if (p.tipo === "opcion") {
       const ops = opcionesDe(p);
@@ -102,6 +105,7 @@ export type Borrador = {
   transporte: boolean;
   preguntas: PreguntaEmpleador[];
   respuestas: Partial<Record<PreguntaId, boolean>>;
+  contrato: TipoContrato | "";
   confirmaAdvertencia: boolean;
 };
 
@@ -161,7 +165,8 @@ export function nivelRiesgo(r: Borrador["respuestas"]): "bajo" | "medio" | "alto
 }
 
 /** La base exige confirmar la advertencia en riesgo medio y alto. */
-export const requiereAviso = (r: Borrador["respuestas"]) => nivelRiesgo(r) !== "bajo";
+export const requiereAviso = (d: Pick<Borrador, "contrato" | "respuestas">) =>
+  d.contrato === "honorarios" && nivelRiesgo(d.respuestas) !== "bajo";
 
 function offsetSantiago(fecha: Date): number {
   const nombre =
@@ -202,7 +207,11 @@ export function validarPaso(n: number, d: Borrador): Record<string, string> {
   if (n === 3) return validarPreguntas(d.preguntas);
   if (n === 4) {
     const e: Record<string, string> = {};
-    for (const p of PREGUNTAS_MODALIDAD) if (d.respuestas[p.id] === undefined) e[p.id] = "Responde sí o no";
+    if (!d.contrato) e.contrato = "Elige cómo vas a contratar este turno";
+    // El cuestionario de modalidad solo aplica a la boleta de honorarios.
+    if (d.contrato === "honorarios") {
+      for (const p of PREGUNTAS_MODALIDAD) if (d.respuestas[p.id] === undefined) e[p.id] = "Responde sí o no";
+    }
     return e;
   }
   const res =
@@ -211,12 +220,21 @@ export function validarPaso(n: number, d: Borrador): Record<string, string> {
       : n === 1
         ? paso2.safeParse({ fecha: d.fecha, inicio: d.inicio, termino: d.termino, region: d.region, comuna: d.comuna, direccion: d.direccion })
         : paso3.safeParse({ monto: Number(d.monto), pausas: d.pausas, vestimenta: d.vestimenta });
-  return res.success ? {} : aMapa(res.error.issues);
+  const e = res.success ? {} : aMapa(res.error.issues);
+  // Normas de publicación (mismas reglas que aplica la base al publicar).
+  const revisar: [string, string | null][] =
+    n === 0
+      ? [["titulo", problemaTitulo(d.titulo)], ["descripcion", problemaTexto(d.descripcion)]]
+      : n === 1
+        ? []
+        : [["pausas", problemaTexto(d.pausas)], ["vestimenta", problemaTexto(d.vestimenta)]];
+  for (const [k, msg] of revisar) if (msg && !e[k]) e[k] = msg;
+  return e;
 }
 
 export function validarTodo(d: Borrador): Record<string, string> {
   const e = { ...validarPaso(0, d), ...validarPaso(1, d), ...validarPaso(2, d), ...validarPaso(3, d), ...validarPaso(4, d) };
-  if (requiereAviso(d.respuestas) && !d.confirmaAdvertencia) {
+  if (requiereAviso(d) && !d.confirmaAdvertencia) {
     e.confirmaAdvertencia = "Confirma que leíste la advertencia";
   }
   return e;

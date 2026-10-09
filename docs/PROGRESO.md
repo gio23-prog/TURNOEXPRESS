@@ -45,3 +45,15 @@ Proyecto Next.js, identidad visual, registro/ingreso con selección de rol, perf
 - /registro → "Necesito personal": un solo formulario con cuenta (persona a cargo), empresa, dirección fiscal y representante legal ("Yo soy el representante legal"). Al terminar entra directo a publicar.
 - Los datos legales no se guardan en los metadatos de la cuenta; si Supabase exige confirmar el correo, se completan al primer ingreso.
 - 108 pruebas de base de datos pasando.
+
+## Tipo de contrato y normas de publicación ✅ (09/10/2026)
+- Migración 9: preguntas del empleador de hasta 500 caracteres.
+- Migración 10: tipo de contrato (plazo fijo, por obra o faena, indefinido, boleta de honorarios).
+  · Contrato de trabajo → se publica sin cuestionario ni revisión.
+  · Boleta de honorarios → cuestionario de 5 preguntas; 3+ indicios → revisión.
+  · Pago por hora sobre $40.000 → revisión.
+- Normas de publicación (inspiradas en Computrabajo), aplicadas en la base y avisadas en el formulario:
+  sin datos de contacto, sin cobros al trabajador, sin multinivel, sin pago solo por comisión,
+  sin requisitos discriminatorios, sin títulos en mayúsculas ni genéricos. Un puesto y una ubicación por publicación (por diseño).
+- La empresa ve el motivo cuando su turno queda en revisión; el trabajador ve el tipo de contratación en el detalle.
+- 130 pruebas de base de datos pasando.

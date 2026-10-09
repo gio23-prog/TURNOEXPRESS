@@ -40,8 +40,10 @@ export async function publicarTurno(datos: Borrador): Promise<Resultado> {
 
   // 4. Borrador.
   const { inicio, termino } = rangoTurno(datos);
-  const riesgoso = requiereAviso(datos.respuestas);
-  const respuestas = Object.fromEntries(PREGUNTAS_MODALIDAD.map((p) => [p.id, datos.respuestas[p.id]]));
+  const honorarios = datos.contrato === "honorarios";
+  const riesgoso = requiereAviso(datos);
+  // El cuestionario de modalidad solo se guarda con boleta de honorarios.
+  const respuestas = Object.fromEntries(PREGUNTAS_MODALIDAD.map((p) => [p.id, honorarios ? datos.respuestas[p.id] : null]));
 
   const { data: job, error: errJob } = await supabase
     .from("job_posts")
@@ -62,7 +64,7 @@ export async function publicarTurno(datos: Borrador): Promise<Resultado> {
       food_info: datos.alimentacion ? "Incluye alimentación" : null,
       transport_info: datos.transporte ? "Incluye transporte" : null,
       is_urgent: datos.urgente,
-      engagement_mode: "por_definir",
+      contract_type: datos.contrato,
       labor_warning_ack_at: riesgoso && datos.confirmaAdvertencia ? new Date().toISOString() : null,
       ...respuestas,
     })
@@ -97,7 +99,15 @@ export async function publicarTurno(datos: Borrador): Promise<Resultado> {
     return { ok: false, mensaje: mensajeDe(errPub, "El turno quedó guardado como borrador, pero no se pudo publicar.") };
   }
 
-  return estado === "en_revision"
-    ? { ok: true, estado, mensaje: "Tu turno quedó en revisión. Por sus condiciones podría corresponder a una relación laboral; te avisaremos cuando el equipo lo revise." }
-    : { ok: true, estado: "publicada", mensaje: "Tu turno ya está visible para los trabajadores." };
+  if (estado === "en_revision") {
+    // La base deja el motivo en review_note ("Revisión automática: ...").
+    const { data: nota } = await supabase.from("job_posts").select("review_note").eq("id", job.id).single();
+    const motivo = nota?.review_note?.replace(/^Revisión automática:\s*/, "");
+    return {
+      ok: true,
+      estado,
+      mensaje: `Tu turno quedó en revisión${motivo ? ` (motivo: ${motivo})` : ""}. Te avisaremos cuando el equipo lo revise.`,
+    };
+  }
+  return { ok: true, estado: "publicada", mensaje: "Tu turno ya está visible para los trabajadores." };
 }

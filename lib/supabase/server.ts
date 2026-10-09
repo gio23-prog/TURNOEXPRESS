@@ -13,7 +13,7 @@ export async function createClient() {
           try {
             lista.forEach(({ name, value, options }) => store.set(name, value, options));
           } catch {
-            // Se ignora cuando se llama desde un Server Component; el proxy refresca la sesión.
+            // Se ignora cuando se llama desde un Server Component; proxy.ts refresca la sesión.
           }
         },
       },

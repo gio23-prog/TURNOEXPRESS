@@ -9,6 +9,7 @@ import {
   calcularDuracion,
   calcularPago,
   nivelRiesgo,
+  requiereAdvertencia,
   validarPaso,
   type Borrador,
 } from "@/lib/schemas/publicar";
@@ -79,7 +80,7 @@ export default function PublicarTurno() {
   }
 
   function publicar() {
-    if (riesgo === "alto" && !d.confirmaAdvertencia) {
+    if (requiereAdvertencia(d.respuestas) && !d.confirmaAdvertencia) {
       setErr({ confirmaAdvertencia: "Confirma que leíste la advertencia" });
       return;
     }
@@ -229,10 +230,15 @@ export default function PublicarTurno() {
                 </div>
               ))}
             </dl>
-            {riesgo === "alto" ? (
+            {riesgo !== "bajo" ? (
               <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-                <p className="font-medium">Este turno tiene indicios de relación laboral.</p>
-                <p className="mt-1">Quedará en revisión antes de ser visible, y no debe pagarse siempre con boleta. Revisa la guía de modalidad.</p>
+                <p className="font-medium">
+                  {riesgo === "alto" ? "Este turno tiene varios indicios de relación laboral." : "Este turno tiene algunos indicios de relación laboral."}
+                </p>
+                <p className="mt-1">
+                  {riesgo === "alto" && "Quedará en revisión antes de ser visible. "}
+                  Si en la práctica es una relación laboral, corresponde contrato de trabajo y no boleta de honorarios. Revisa la guía de modalidad.
+                </p>
                 <label className="mt-3 flex items-start gap-2">
                   <input type="checkbox" className="mt-1" checked={d.confirmaAdvertencia} onChange={(e) => set("confirmaAdvertencia", e.target.checked)} />
                   Leí la advertencia y quiero continuar

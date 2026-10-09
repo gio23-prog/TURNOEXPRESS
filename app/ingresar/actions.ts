@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { asegurarPerfilDeRol } from "@/lib/supabase/perfil";
 import { ingresoSchema, erroresPorCampo, type IngresoInput } from "@/lib/schemas/auth";
 
 export async function ingresar(datos: IngresoInput) {
@@ -14,5 +15,6 @@ export async function ingresar(datos: IngresoInput) {
   if (error) {
     return { ok: false, mensaje: "Correo o contraseña incorrectos." };
   }
+  await asegurarPerfilDeRol(supabase);
   redirect("/");
 }

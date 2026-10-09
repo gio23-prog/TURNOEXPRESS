@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { erroresPorCampo } from "./auth";
 
 // TODO: reemplazar por consultas a las tablas `categories` y `comunas` de Supabase.
 export const CATEGORIAS = [
@@ -12,14 +13,15 @@ export const CATEGORIAS = [
 ] as const;
 export const COMUNAS = ["Santiago", "Providencia", "Las Condes", "Ñuñoa", "Maipú", "La Florida"] as const;
 
-// TODO: alinear estas 5 preguntas con CUMPLIMIENTO_LEGAL.md. La base de datos es la
-// autoridad: el riesgo real debe recalcularlo la RPC, esto es solo orientativo.
+// Mismas 5 preguntas que las columnas q_* de job_posts. El riesgo real lo calcula
+// public.compute_labor_risk() en la base de datos; esto es solo orientativo.
+// `riesgoSi` indica qué respuesta suma un indicio de relación laboral.
 export const PREGUNTAS_MODALIDAD = [
-  { id: "horarioFijo", texto: "¿La empresa fija el horario exacto de trabajo?" },
-  { id: "instrucciones", texto: "¿Trabajará bajo instrucciones o supervisión directa de la empresa?" },
-  { id: "equipamiento", texto: "¿La empresa entrega uniforme, herramientas o equipo?" },
-  { id: "reemplazo", texto: "¿El turno reemplaza a alguien del equipo que no puede asistir?" },
-  { id: "repetido", texto: "¿Se repetirá con la misma persona más de una vez?" },
+  { id: "q_autonomy", texto: "¿La persona decide por sí misma cómo realizar el trabajo?", riesgoSi: false },
+  { id: "q_direct_supervision", texto: "¿Trabajará bajo supervisión directa de alguien de la empresa?", riesgoSi: true },
+  { id: "q_imposed_schedule", texto: "¿La empresa fija el horario exacto de trabajo?", riesgoSi: true },
+  { id: "q_continuous_instructions", texto: "¿Recibirá instrucciones continuas durante el turno?", riesgoSi: true },
+  { id: "q_core_recurring", texto: "¿Es una tarea habitual del negocio que se repite con frecuencia?", riesgoSi: true },
 ] as const;
 
 export type Borrador = {
@@ -87,17 +89,13 @@ export function calcularPago(d: Pick<Borrador, "modoPago" | "monto" | "inicio" |
 }
 
 export function nivelRiesgo(r: Borrador["respuestas"]): "bajo" | "medio" | "alto" {
-  const si = PREGUNTAS_MODALIDAD.filter((p) => r[p.id] === true).length;
-  return si >= 3 ? "alto" : si === 2 ? "medio" : "bajo";
+  const indicios = PREGUNTAS_MODALIDAD.filter((p) => r[p.id] === p.riesgoSi).length;
+  return indicios >= 3 ? "alto" : indicios === 2 ? "medio" : "bajo";
 }
 
-function aMapa(issues: { path: PropertyKey[]; message: string }[]) {
-  const out: Record<string, string> = {};
-  for (const i of issues) {
-    const k = String(i.path[0] ?? "form");
-    if (!out[k]) out[k] = i.message;
-  }
-  return out;
+/** La base exige confirmar la advertencia con riesgo medio o alto (publish_job). */
+export function requiereAdvertencia(r: Borrador["respuestas"]): boolean {
+  return nivelRiesgo(r) !== "bajo";
 }
 
 /** Valida un paso (0 a 3). Se usa en el formulario y en la Server Action. */
@@ -113,12 +111,12 @@ export function validarPaso(n: number, d: Borrador): Record<string, string> {
       : n === 1
         ? paso2.safeParse({ fecha: d.fecha, inicio: d.inicio, termino: d.termino, comuna: d.comuna, direccion: d.direccion })
         : paso3.safeParse({ monto: Number(d.monto), pausas: d.pausas, vestimenta: d.vestimenta });
-  return res.success ? {} : aMapa(res.error.issues);
+  return res.success ? {} : erroresPorCampo(res.error.issues);
 }
 
 export function validarTodo(d: Borrador): Record<string, string> {
   const e = { ...validarPaso(0, d), ...validarPaso(1, d), ...validarPaso(2, d), ...validarPaso(3, d) };
-  if (nivelRiesgo(d.respuestas) === "alto" && !d.confirmaAdvertencia) {
+  if (requiereAdvertencia(d.respuestas) && !d.confirmaAdvertencia) {
     e.confirmaAdvertencia = "Confirma que leíste la advertencia";
   }
   return e;

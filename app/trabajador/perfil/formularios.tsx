@@ -1,14 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
+import { useRef, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Campo, campo } from "@/app/registro/trabajador";
 import { formatearRut, limpiarRut, rutValido } from "@/lib/rut";
-import {
-  datosPersonalesSchema, errores, perfilProfesionalSchema,
-  type DatosPersonalesInput, type PerfilProfesionalInput,
-} from "@/lib/schemas/trabajador";
-import { guardarDatos, guardarPerfil, subirCV, sugerenciasDesdeCV } from "./actions";
+import { datosPersonalesSchema, errores, type DatosPersonalesInput } from "@/lib/schemas/trabajador";
+import { guardarDatos, subirCV } from "./actions";
 
 type Opcion = { id: number; nombre: string };
 type Comuna = Opcion & { regionId: number };
@@ -17,7 +14,7 @@ type Msg = { ok: boolean; texto: string } | null;
 const tarjeta = "space-y-4 rounded-2xl border border-stone-200 bg-white p-5";
 const boton = "w-full rounded-lg bg-teal-700 px-6 py-3 font-semibold text-white hover:bg-teal-800 disabled:opacity-60 sm:w-auto";
 
-function Aviso({ msg }: { msg: Msg }) {
+export function Aviso({ msg }: { msg: Msg }) {
   if (!msg) return null;
   return (
     <p role={msg.ok ? "status" : "alert"}
@@ -170,170 +167,10 @@ export function FormCV({ actual, siguiente }: { actual: { subido: string | null 
         {actual && (
           <button type="button" onClick={() => router.push(siguiente)}
             className="rounded-lg border border-stone-300 bg-white px-6 py-3 font-medium text-stone-800">
-            Ir a mi perfil
+            Ir a mi CV
           </button>
         )}
       </div>
-    </form>
-  );
-}
-
-// 3. Perfil profesional ---------------------------------------------------------
-export function FormPerfil({
-  inicial, rubros, regiones, comunas, regionInicial, tieneCV, leerAlAbrir,
-}: {
-  inicial: PerfilProfesionalInput; rubros: Opcion[]; regiones: Opcion[]; comunas: Comuna[]; regionInicial: string;
-  tieneCV: boolean; leerAlAbrir: boolean;
-}) {
-  const router = useRouter();
-  const [d, setD] = useState(inicial);
-  const [region, setRegion] = useState(regionInicial);
-  const [err, setErr] = useState<Record<string, string>>({});
-  const [msg, setMsg] = useState<Msg>(null);
-  const [pendiente, iniciar] = useTransition();
-  const set = <K extends keyof PerfilProfesionalInput>(k: K, v: PerfilProfesionalInput[K]) => setD((p) => ({ ...p, [k]: v }));
-  const alternar = (k: "rubros" | "comunas", id: number) =>
-    setD((p) => ({ ...p, [k]: p[k].includes(id) ? p[k].filter((x) => x !== id) : [...p[k], id] }));
-  const nombreComuna = new Map(comunas.map((c) => [c.id, c.nombre]));
-  const comunasRegion = comunas.filter((c) => String(c.regionId) === region);
-  const [leyendo, iniciarLectura] = useTransition();
-  const [msgCV, setMsgCV] = useState<Msg>(null);
-
-  // Completa solo los campos vacíos con lo que encontramos en el CV. No guarda: la persona revisa y guarda.
-  function completarDesdeCV() {
-    iniciarLectura(async () => {
-      const r = await sugerenciasDesdeCV();
-      setMsgCV({ ok: r.ok, texto: r.mensaje });
-      const s = r.sugerencias;
-      if (!s) return;
-      setD((p) => ({
-        ...p,
-        descripcion: p.descripcion.trim() ? p.descripcion : s.descripcion,
-        experiencia: p.experiencia.trim() ? p.experiencia : s.experiencia,
-        anios: p.anios ? p.anios : s.anios,
-        rubros: [...new Set([...p.rubros, ...s.rubros])],
-        comunas: [...new Set([...p.comunas, ...s.comunas])].slice(0, 60),
-      }));
-    });
-  }
-
-  const vacio = !inicial.descripcion && !inicial.experiencia && inicial.rubros.length === 0;
-  const yaLeido = useRef(false);
-  useEffect(() => {
-    if (leerAlAbrir && tieneCV && vacio && !yaLeido.current) {
-      yaLeido.current = true;
-      completarDesdeCV();
-    }
-    // Solo al abrir la página después de subir el CV.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  function enviar(e: FormEvent) {
-    e.preventDefault();
-    const e1 = errores(perfilProfesionalSchema, d);
-    setErr(e1);
-    if (Object.keys(e1).length) { document.getElementById(Object.keys(e1)[0])?.focus(); return; }
-    iniciar(async () => {
-      const r = await guardarPerfil(d);
-      setErr(r.errores ?? {});
-      setMsg({ ok: r.ok, texto: r.ok ? "Perfil guardado. Te llevamos a las ofertas..." : r.mensaje });
-      // Con el perfil listo, el siguiente paso natural es buscar ofertas.
-      if (r.ok) router.push("/trabajos?perfil=listo");
-    });
-  }
-
-  return (
-    <form onSubmit={enviar} noValidate className={tarjeta}>
-      <div>
-        <h2 className="text-lg font-bold">Perfil</h2>
-        <p className="text-sm text-stone-600">Es lo que ven las empresas cuando postulas a una de sus ofertas.</p>
-      </div>
-
-      {tieneCV && (
-        <div className="flex flex-col gap-2 rounded-xl border border-teal-200 bg-teal-50 p-3 text-sm text-teal-950 sm:flex-row sm:items-center sm:justify-between">
-          <p>Podemos completar los campos vacíos con la información de tu currículum.</p>
-          <button type="button" disabled={leyendo} onClick={completarDesdeCV}
-            className="shrink-0 rounded-lg bg-teal-700 px-4 py-2 font-semibold text-white hover:bg-teal-800 disabled:opacity-60">
-            {leyendo ? "Leyendo tu currículum..." : "Completar con mi currículum"}
-          </button>
-        </div>
-      )}
-      <Aviso msg={msgCV} />
-
-      <Campo id="nombreVisible" label="Nombre que ven las empresas" ayuda="Por ejemplo, tu nombre y la inicial de tu apellido." error={err.nombreVisible}>
-        <input id="nombreVisible" className={campo} maxLength={60} value={d.nombreVisible} onChange={(e) => set("nombreVisible", e.target.value)} />
-      </Campo>
-
-      <Campo id="descripcion" label="Sobre ti" ayuda={`${d.descripcion.length}/1000 · Cuéntale a la empresa en qué eres bueno y cómo trabajas.`} error={err.descripcion}>
-        <textarea id="descripcion" rows={3} maxLength={1000} className={campo} value={d.descripcion}
-          onChange={(e) => set("descripcion", e.target.value)} />
-      </Campo>
-
-      <Campo id="experiencia" label="Experiencia" ayuda={`${d.experiencia.length}/2000 · Lugares y tareas que has realizado.`} error={err.experiencia}>
-        <textarea id="experiencia" rows={4} maxLength={2000} className={campo} value={d.experiencia}
-          onChange={(e) => set("experiencia", e.target.value)} />
-      </Campo>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Campo id="anios" label="Años de experiencia" error={err.anios}>
-          <input id="anios" inputMode="numeric" className={campo} maxLength={2} value={d.anios}
-            onChange={(e) => set("anios", e.target.value.replace(/\D/g, ""))} />
-        </Campo>
-        <label className="flex items-center gap-2 self-end pb-2 text-sm font-medium text-stone-700">
-          <input type="checkbox" className="size-4" checked={d.emiteBoleta} onChange={(e) => set("emiteBoleta", e.target.checked)} />
-          Puedo emitir boleta de honorarios
-        </label>
-      </div>
-
-      <fieldset>
-        <legend className="mb-2 text-sm font-medium text-stone-700">Rubros en los que buscas trabajo</legend>
-        <div className="flex flex-wrap gap-2">
-          {rubros.map((r) => {
-            const sel = d.rubros.includes(r.id);
-            return (
-              <button key={r.id} type="button" aria-pressed={sel} onClick={() => alternar("rubros", r.id)}
-                className={`rounded-full border px-3 py-1.5 text-sm font-medium ${
-                  sel ? "border-teal-700 bg-teal-700 text-white" : "border-stone-300 bg-white text-stone-700 hover:border-teal-700"}`}>
-                {r.nombre}
-              </button>
-            );
-          })}
-        </div>
-      </fieldset>
-
-      <fieldset>
-        <legend className="mb-2 text-sm font-medium text-stone-700">Comunas donde puedes trabajar</legend>
-        {d.comunas.length > 0 && (
-          <ul className="mb-3 flex flex-wrap gap-2">
-            {d.comunas.map((id) => (
-              <li key={id}>
-                <button type="button" onClick={() => alternar("comunas", id)} aria-label={`Quitar ${nombreComuna.get(id)}`}
-                  className="rounded-full bg-teal-50 px-3 py-1.5 text-sm font-medium text-teal-900 ring-1 ring-teal-700/30 hover:bg-teal-100">
-                  {nombreComuna.get(id)} ✕
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-        <select id="comunas" aria-label="Región para agregar comunas" className={campo} value={region} onChange={(e) => setRegion(e.target.value)}>
-          <option value="">Elige una región para agregar comunas</option>
-          {regiones.map((r) => <option key={r.id} value={r.id}>{r.nombre}</option>)}
-        </select>
-        {region && (
-          <div className="mt-2 grid max-h-56 grid-cols-2 gap-x-3 gap-y-1 overflow-y-auto rounded-lg border border-stone-200 p-3 text-sm sm:grid-cols-3">
-            {comunasRegion.map((c) => (
-              <label key={c.id} className="flex items-center gap-2">
-                <input type="checkbox" className="size-4" checked={d.comunas.includes(c.id)} onChange={() => alternar("comunas", c.id)} />
-                {c.nombre}
-              </label>
-            ))}
-          </div>
-        )}
-        {err.comunas && <p role="alert" className="mt-1 text-sm text-red-700">{err.comunas}</p>}
-      </fieldset>
-
-      <Aviso msg={msg} />
-      <button disabled={pendiente} className={boton}>{pendiente ? "Guardando..." : "Guardar perfil"}</button>
     </form>
   );
 }

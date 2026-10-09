@@ -121,3 +121,10 @@ Proyecto Next.js, identidad visual, registro/ingreso con selección de rol, perf
 - Reglas simples, sin IA. Solo completa campos vacíos y no guarda: la persona revisa y presiona "Guardar perfil".
 - Botón "Completar con mi currículum" en el paso Perfil; se ejecuta solo al llegar desde la primera subida del CV.
 - No funciona con PDF escaneados (sin texto): se avisa.
+
+## CV estructurado (Mi CV) ✅ (09/10/2026)
+- Migración 18: titular, movilidad (viajar, cambiar de residencia, vehículo) y tablas worker_experiences, worker_education, worker_languages, worker_skill_tags, con RLS (dueño escribe; lo ven el dueño, las empresas a cuyas ofertas postuló y administración) y límites (20/10/10/30). Sin fecha de nacimiento.
+- /trabajador/perfil paso "Mi CV": tarjetas editables (contacto, titular y descripción, experiencia, formación, idiomas, habilidades, movilidad, rubros y comunas, currículum adjunto).
+- "Completar con mi currículum": lee el PDF (reglas simples, sin IA) y llena SOLO las secciones vacías con experiencias, formación, idiomas, habilidades, movilidad, rubros y comunas. Se ejecuta solo tras la primera subida.
+- La empresa ve el titular y "Ver CV completo" en cada postulante.
+- ACTUALIZAR.sql incluye la migración 18. 147 pruebas de base de datos pasando.

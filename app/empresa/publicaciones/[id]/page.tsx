@@ -6,12 +6,16 @@ import { ESTADO_PUBLICACION, GRUPOS_EMPRESA } from "@/lib/estados";
 import { nombreContrato } from "@/lib/reglas-publicacion";
 import Encabezado, { obtenerSesion } from "@/app/componentes/encabezado";
 import { PildoraEstado } from "@/app/componentes/estado";
+import { CVPostulante, type CVCompleto } from "@/app/componentes/cv-completo";
 import { AccionesPostulante, CerrarOferta } from "./acciones";
 
 type Postulante = {
   id: string; status: string; created_at: string; updated_at: string; worker_id: string;
   message: string | null; highlighted_experience: string | null; disqualified: boolean; cv_path: string | null;
-  worker_profiles: { display_name: string; years_experience: number | null; can_issue_boleta: boolean; bio: string | null } | null;
+  worker_profiles: {
+    display_name: string; headline: string | null; years_experience: number | null; can_issue_boleta: boolean; bio: string | null;
+    can_travel: boolean; can_relocate: boolean; has_vehicle: boolean;
+  } | null;
   application_answers: { question_id: string; answer: string }[];
 };
 type Contacto = { application_id: string; full_name: string; phone: string | null; email: string | null };
@@ -43,7 +47,8 @@ export default async function PostulantesTurno({
     .from("applications")
     .select(
       "id, status, created_at, updated_at, worker_id, message, highlighted_experience, disqualified, cv_path, " +
-      "worker_profiles(display_name, years_experience, can_issue_boleta, bio), application_answers(question_id, answer)"
+      "worker_profiles(display_name, headline, years_experience, can_issue_boleta, bio, can_travel, can_relocate, has_vehicle), " +
+      "application_answers(question_id, answer)"
     )
     .eq("job_id", id)
     .order("created_at");
@@ -58,10 +63,29 @@ export default async function PostulantesTurno({
     resultados.forEach((r, k) => { if (!r.error) nuevos[k].status = "en_revision"; });
   }
 
-  const [{ data: preguntasRaw }, { data: contactosRaw }] = await Promise.all([
+  const ids = postulantes.map((p) => p.worker_id);
+  const vacioRes = Promise.resolve({ data: [] as Record<string, unknown>[] });
+  const [{ data: preguntasRaw }, { data: contactosRaw }, { data: exps }, { data: edus }, { data: idis }, { data: habs }] = await Promise.all([
     supabase.rpc("my_job_questions", { p_job: id }),
     supabase.rpc("job_applicant_contacts", { p_job: id }),
+    ids.length ? supabase.from("worker_experiences").select("id, worker_id, position, company, description, location, start_date, end_date, is_current")
+      .in("worker_id", ids).order("is_current", { ascending: false }).order("start_date", { ascending: false }) : vacioRes,
+    ids.length ? supabase.from("worker_education").select("id, worker_id, institution, title, level, start_date, end_date, is_current")
+      .in("worker_id", ids).order("end_date", { ascending: false, nullsFirst: true }) : vacioRes,
+    ids.length ? supabase.from("worker_languages").select("worker_id, language, level").in("worker_id", ids) : vacioRes,
+    ids.length ? supabase.from("worker_skill_tags").select("worker_id, tag").in("worker_id", ids).order("tag") : vacioRes,
   ]);
+  const de = <T extends { worker_id: string }>(filas: unknown, w: string) => ((filas ?? []) as T[]).filter((x) => x.worker_id === w);
+  const cvDe = (p: Postulante): CVCompleto => ({
+    bio: p.worker_profiles?.bio ?? null,
+    experiencias: de<CVCompleto["experiencias"][number] & { worker_id: string }>(exps, p.worker_id),
+    formacion: de<CVCompleto["formacion"][number] & { worker_id: string }>(edus, p.worker_id),
+    idiomas: de<CVCompleto["idiomas"][number] & { worker_id: string }>(idis, p.worker_id),
+    habilidades: de<{ worker_id: string; tag: string }>(habs, p.worker_id).map((x) => x.tag),
+    movilidad: {
+      can_travel: !!p.worker_profiles?.can_travel, can_relocate: !!p.worker_profiles?.can_relocate, has_vehicle: !!p.worker_profiles?.has_vehicle,
+    },
+  });
   const preguntas = (preguntasRaw ?? []) as Pregunta[];
   const contacto = new Map(((contactosRaw ?? []) as Contacto[]).map((c) => [c.application_id, c]));
 
@@ -137,6 +161,7 @@ export default async function PostulantesTurno({
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-lg font-bold">{c?.full_name ?? w?.display_name ?? "Postulante"}</p>
+                      {w?.headline && <p className="font-medium text-teal-900">{w.headline}</p>}
                       <p className="text-sm text-stone-600">
                         {w?.years_experience != null ? `${w.years_experience} años de experiencia` : "Experiencia no indicada"}
                         {w?.can_issue_boleta && <> · Emite boleta</>}
@@ -169,6 +194,11 @@ export default async function PostulantesTurno({
                       <PildoraEstado estado={p.status} para="empresa" />
                     </div>
                   </div>
+
+                  <details className="mt-3 rounded-xl border border-stone-200 bg-white">
+                    <summary className="cursor-pointer px-3 py-2 text-sm font-medium text-teal-800">Ver CV completo</summary>
+                    <div className="border-t border-stone-100 p-3"><CVPostulante cv={cvDe(p)} /></div>
+                  </details>
 
                   {(p.message || p.highlighted_experience) && (
                     <div className="mt-3 space-y-1 text-sm text-stone-700">

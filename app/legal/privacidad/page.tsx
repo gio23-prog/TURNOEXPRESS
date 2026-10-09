@@ -41,7 +41,7 @@ export default function Privacidad() {
                 <li>Cuenta: nombre completo, correo y contraseña (que guardamos cifrada).</li>
                 <li>Datos personales: teléfono, RUT, comuna y dirección. El teléfono lo ve solo la empresa a la que postulas; el RUT y la dirección no los ve ninguna empresa.</li>
                 <li>Currículum: el archivo PDF que subas.</li>
-                <li>Perfil: nombre visible, descripción, experiencia, rubros, comunas donde puedes trabajar y si emites boleta de honorarios.</li>
+                <li>CV: cargo o título, descripción, experiencia laboral, formación, idiomas, habilidades, disponibilidad para viajar o cambiar de residencia, si tienes vehículo, rubros, comunas donde puedes trabajar y si emites boleta de honorarios. No pedimos tu fecha de nacimiento.</li>
                 <li>Postulaciones: el currículum enviado, tu mensaje, la experiencia que destaques y tus respuestas a las preguntas de la empresa.</li>
               </ul>
               <p><strong>Si eres Empresa:</strong></p>

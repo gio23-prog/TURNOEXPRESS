@@ -21,18 +21,6 @@ export const registroTrabajadorSchema = datosPersonalesSchema.extend({
 });
 export type RegistroTrabajadorInput = z.input<typeof registroTrabajadorSchema>;
 
-/** Perfil profesional: lo ven las empresas a las que postulas. */
-export const perfilProfesionalSchema = z.object({
-  nombreVisible: texto(2, 60, "Escribe cómo quieres que te vean las empresas"),
-  descripcion: z.string().trim().max(1000, "Máximo 1000 caracteres"),
-  experiencia: z.string().trim().max(2000, "Máximo 2000 caracteres"),
-  anios: z.string().regex(/^\d{0,2}$/, "Indica los años como número"),
-  emiteBoleta: z.boolean(),
-  rubros: z.array(z.number().int()).max(7),
-  comunas: z.array(z.number().int()).max(60, "Máximo 60 comunas"),
-});
-export type PerfilProfesionalInput = z.input<typeof perfilProfesionalSchema>;
-
 export function errores<T>(schema: z.ZodType<T>, d: unknown): Record<string, string> {
   const r = schema.safeParse(d);
   if (r.success) return {};

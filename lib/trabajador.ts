@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/server";
 import { nombreVisiblePorDefecto } from "@/lib/schemas/trabajador";
 
 type Datos = { nombre: string; telefono: string; rut: string; comuna: string; direccion: string };
@@ -37,4 +38,14 @@ export async function faltantesTrabajador(supabase: SupabaseClient, uid: string)
   if (!p?.phone || !p?.rut || !priv) faltan.push("datos personales");
   if (!wp?.cv_path) faltan.push("currículum");
   return faltan;
+}
+
+/** Sesión actual, solo si es una cuenta de postulante. */
+export async function usuarioTrabajador() {
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { supabase, uid: null, error: "Tu sesión expiró. Vuelve a ingresar." };
+  const { data: p } = await supabase.from("profiles").select("role").eq("id", auth.user.id).single();
+  if (p?.role !== "trabajador") return { supabase, uid: null, error: "Esta sección es solo para cuentas de postulante." };
+  return { supabase, uid: auth.user.id, error: null };
 }

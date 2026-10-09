@@ -1,21 +1,767 @@
--- TurnoExpress: actualización de la migración 15 a la 17 en un solo paso.
--- Úsalo SOLO si tu base ya tiene hasta la migración 14 y no tiene la 15.
--- Ejecútalo una sola vez en el SQL Editor de Supabase.
+-- TurnoExpress: ACTUALIZAR la base a la última versión.
+-- Revisa qué migraciones (de la 7 en adelante) faltan y ejecuta SOLO esas, en orden.
+-- Se puede ejecutar más de una vez: si ya está al día, no cambia nada.
+-- Requisito: tener instaladas las migraciones 1 a 6 (base y regiones).
 
-do $$
+do $chk$
 begin
-  if to_regprocedure('public.job_applicant_counts(uuid[])') is null then
-    raise exception 'Falta la migración 14 (conteo de postulantes). Ejecútala primero y vuelve a correr este archivo.';
+  if to_regclass('public.job_posts') is null or (select count(*) from public.regions) < 16 then
+    raise exception 'Faltan las migraciones base (1 a 6). Usa INSTALAR_EN_SUPABASE.sql en una base vacía.';
   end if;
-  if not exists (select 1 from public.platform_settings where key = 'max_hourly_review_clp') then
-    raise exception 'Falta la migración 13 (umbral de pago). Ejecútala primero y vuelve a correr este archivo.';
+end $chk$;
+
+-- >>>>> 20261009000700_empresa_y_preguntas
+do $paso0$
+begin
+  if to_regclass('public.job_questions') is null then
+    raise notice 'Aplicando 20261009000700_empresa_y_preguntas';
+    execute $mig0$
+-- ============================================================================
+-- Migración 7: datos legales de la empresa y preguntas del empleador.
+--  · business_profiles: giro, dirección fiscal, representante legal, persona a cargo.
+--  · No se puede publicar un turno si faltan datos de la empresa.
+--  · job_questions: hasta 5 preguntas por turno (sí/no, opciones, respuesta corta),
+--    con respuestas excluyentes ocultas para el trabajador.
+--  · application_answers + applications.disqualified: el postulante que da una respuesta
+--    excluyente queda marcado; NO se rechaza automáticamente, decide la empresa.
+-- ============================================================================
+set search_path = public, extensions;
+
+-- ---------------------------------------------------------------------------
+-- 1. Datos legales de la empresa
+-- ---------------------------------------------------------------------------
+alter table public.business_profiles
+  add column giro             text check (giro is null or length(trim(giro)) between 3 and 150),
+  add column fiscal_address   text check (fiscal_address is null or length(trim(fiscal_address)) between 5 and 200),
+  add column legal_rep_name   text check (legal_rep_name is null or length(trim(legal_rep_name)) between 3 and 120),
+  add column legal_rep_rut    text check (legal_rep_rut is null or public.rut_is_valid(legal_rep_rut)),
+  add column contact_name     text check (contact_name is null or length(trim(contact_name)) between 3 and 120),
+  add column contact_position text check (contact_position is null or length(trim(contact_position)) between 2 and 80);
+
+comment on column public.business_profiles.comuna_id is 'Comuna de la dirección fiscal.';
+
+grant insert (giro, fiscal_address, legal_rep_name, legal_rep_rut, contact_name, contact_position)
+  on public.business_profiles to authenticated;
+grant update (giro, fiscal_address, legal_rep_name, legal_rep_rut, contact_name, contact_position)
+  on public.business_profiles to authenticated;
+
+-- Lista de datos obligatorios que faltan (vacía = perfil completo).
+create or replace function public.business_profile_missing(p_user uuid) returns text[]
+language sql stable security definer set search_path = public as $$
+  select coalesce(array_remove(array[
+    case when b.user_id is null then 'perfil de empresa' end,
+    case when b.rut is null then 'RUT de la empresa' end,
+    case when b.legal_name is null then 'razón social' end,
+    case when b.giro is null then 'giro' end,
+    case when b.fiscal_address is null or b.comuna_id is null then 'dirección fiscal' end,
+    case when b.legal_rep_name is null or b.legal_rep_rut is null then 'representante legal' end,
+    case when b.contact_name is null or b.contact_phone is null then 'persona a cargo' end
+  ], null), '{}')
+  from (select p_user as uid) x
+  left join public.business_profiles b on b.user_id = x.uid
+$$;
+
+create or replace function public.enforce_business_complete() returns trigger
+language plpgsql security definer set search_path = public as $$
+declare faltan text[];
+begin
+  if old.status = 'borrador' and new.status in ('publicada', 'en_revision') then
+    faltan := public.business_profile_missing(new.business_id);
+    if cardinality(faltan) > 0 then
+      raise exception 'Completa los datos de tu empresa antes de publicar: %', array_to_string(faltan, ', ')
+        using errcode = 'P0001';
+    end if;
   end if;
-  if to_regclass('public.worker_private') is not null then
-    raise exception 'Tu base ya tiene la migración 15. No ejecutes este archivo; avísale a Claude.';
-  end if;
+  return new;
 end $$;
 
--- >>>>> supabase/migrations/20261009001500_trabajador_cv_inasistencia.sql
+create trigger job_posts_business_complete before update of status on public.job_posts
+  for each row execute function public.enforce_business_complete();
+
+-- ---------------------------------------------------------------------------
+-- 2. Preguntas del empleador
+-- ---------------------------------------------------------------------------
+create type public.question_kind as enum ('si_no', 'opcion', 'texto');
+
+create table public.job_questions (
+  id            uuid primary key default gen_random_uuid(),
+  job_id        uuid not null references public.job_posts(id) on delete cascade,
+  position      smallint not null check (position between 1 and 5),
+  prompt        text not null check (length(trim(prompt)) between 5 and 200),
+  kind          public.question_kind not null,
+  options       text[],
+  required      boolean not null default true,
+  disqualifying text[],          -- respuestas excluyentes (oculto para el trabajador)
+  created_at    timestamptz not null default now(),
+  unique (job_id, position),
+  constraint job_questions_options_ok check (
+    (kind = 'opcion' and cardinality(options) between 2 and 6
+       and array_position(options, null) is null)
+    or (kind <> 'opcion' and options is null)),
+  constraint job_questions_disq_ok check (
+    disqualifying is null
+    or (kind = 'si_no' and disqualifying <@ array['si','no'] and cardinality(disqualifying) = 1)
+    or (kind = 'opcion' and disqualifying <@ options and cardinality(disqualifying) between 1 and cardinality(options) - 1))
+);
+create index job_questions_job_idx on public.job_questions(job_id, position);
+
+create or replace function public.is_draft_owner(p_job uuid) returns boolean
+language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.job_posts where id = p_job and business_id = auth.uid() and status = 'borrador')
+$$;
+
+alter table public.job_questions enable row level security;
+create policy questions_read on public.job_questions for select using (
+  exists (select 1 from public.job_posts j where j.id = job_id)     -- hereda RLS de job_posts
+);
+create policy questions_insert on public.job_questions for insert with check (public.is_draft_owner(job_id));
+create policy questions_delete on public.job_questions for delete using (public.is_draft_owner(job_id));
+
+-- El trabajador nunca recibe la columna disqualifying.
+grant select (id, job_id, position, prompt, kind, options, required) on public.job_questions to authenticated;
+grant insert (job_id, position, prompt, kind, options, required, disqualifying) on public.job_questions to authenticated;
+grant delete on public.job_questions to authenticated;
+
+-- Preguntas completas (con excluyentes) sólo para la empresa dueña o administración.
+create or replace function public.my_job_questions(p_job uuid) returns setof public.job_questions
+language plpgsql stable security definer set search_path = public as $$
+begin
+  if not (public.is_job_owner(p_job) or public.is_admin()) then
+    raise exception 'Publicación no encontrada' using errcode = 'P0002';
+  end if;
+  return query select * from public.job_questions where job_id = p_job order by position;
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- 3. Respuestas de los postulantes
+-- ---------------------------------------------------------------------------
+alter table public.applications add column disqualified boolean not null default false;
+
+create table public.application_answers (
+  application_id uuid not null references public.applications(id) on delete cascade,
+  question_id    uuid not null references public.job_questions(id) on delete cascade,
+  answer         text not null check (length(trim(answer)) between 1 and 500),
+  primary key (application_id, question_id)
+);
+
+alter table public.application_answers enable row level security;
+create policy answers_read on public.application_answers for select using (
+  exists (select 1 from public.applications a where a.id = application_id)   -- hereda RLS de applications
+);
+grant select on public.application_answers to authenticated;
+
+-- Postular ahora recibe las respuestas: {"<question_id>": "si" | "no" | "<opción>" | "<texto>"}
+drop function public.apply_to_job(uuid, boolean, text, text);
+
+create function public.apply_to_job(p_job uuid, p_availability_confirmed boolean,
+  p_message text default null, p_highlighted_experience text default null,
+  p_answers jsonb default '{}'::jsonb) returns uuid
+language plpgsql security definer set search_path = public as $$
+declare uid uuid := public._require_user(); j public.job_posts; app_id uuid;
+        q public.job_questions; v text; descartado boolean := false;
+begin
+  if public.my_role() <> 'trabajador' then
+    raise exception 'Sólo las cuentas de trabajador pueden postular' using errcode = '42501';
+  end if;
+  if not exists (select 1 from public.worker_profiles where user_id = uid) then
+    raise exception 'Completa tu perfil antes de postular' using errcode = 'P0001';
+  end if;
+  if p_availability_confirmed is not true then
+    raise exception 'Debes confirmar que tienes disponibilidad para el turno' using errcode = 'P0001';
+  end if;
+  if p_answers is null or jsonb_typeof(p_answers) <> 'object' then
+    raise exception 'Respuestas inválidas' using errcode = 'P0001';
+  end if;
+  select * into j from public.job_posts where id = p_job for update;
+  if not found or not public.job_is_listed(j.status) then
+    raise exception 'Esta publicación no está disponible' using errcode = 'P0002';
+  end if;
+  if j.starts_at <= now() or (j.apply_deadline is not null and j.apply_deadline <= now()) then
+    raise exception 'El plazo para postular terminó' using errcode = 'P0001';
+  end if;
+  begin
+    insert into public.applications (job_id, worker_id, message, highlighted_experience, availability_confirmed)
+    values (p_job, uid, nullif(trim(p_message), ''), nullif(trim(p_highlighted_experience), ''), true)
+    returning id into app_id;
+  exception when unique_violation then
+    raise exception 'Ya postulaste a este trabajo' using errcode = 'P0001';
+  end;
+
+  for q in select * from public.job_questions where job_id = p_job order by position loop
+    v := nullif(trim(p_answers ->> q.id::text), '');
+    if v is null then
+      if q.required then
+        raise exception 'Responde la pregunta: %', q.prompt using errcode = 'P0001';
+      end if;
+      continue;
+    end if;
+    if (q.kind = 'si_no' and v not in ('si', 'no'))
+       or (q.kind = 'opcion' and not (v = any(q.options)))
+       or (q.kind = 'texto' and length(v) > 500) then
+      raise exception 'Respuesta inválida en: %', q.prompt using errcode = 'P0001';
+    end if;
+    insert into public.application_answers (application_id, question_id, answer) values (app_id, q.id, v);
+    if q.disqualifying is not null and v = any(q.disqualifying) then
+      descartado := true;
+    end if;
+  end loop;
+
+  if descartado then
+    update public.applications set disqualified = true where id = app_id;
+  end if;
+  if j.status = 'publicada' then
+    update public.job_posts set status = 'con_postulaciones' where id = p_job;
+  end if;
+  perform public._notify(j.business_id, 'nueva_postulacion', 'Nueva postulación',
+    format('Recibiste una postulación para "%s".', j.title), '/empresa/publicaciones/' || p_job);
+  return app_id;
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- 4. Permisos de ejecución
+-- ---------------------------------------------------------------------------
+revoke execute on function public.business_profile_missing(uuid), public.enforce_business_complete(),
+  public.is_draft_owner(uuid), public.my_job_questions(uuid),
+  public.apply_to_job(uuid, boolean, text, text, jsonb) from public, anon, authenticated;
+grant execute on function public.is_draft_owner(uuid), public.my_job_questions(uuid),
+  public.apply_to_job(uuid, boolean, text, text, jsonb) to authenticated;
+
+$mig0$;
+  end if;
+end $paso0$;
+
+-- >>>>> 20261009000800_registro_empresa
+do $paso1$
+begin
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='business_profiles' and column_name='sector') then
+    raise notice 'Aplicando 20261009000800_registro_empresa';
+    execute $mig1$
+-- ============================================================================
+-- Migración 8: registro de empresa en un solo paso.
+--  · Sector, tamaño (tramos de la Ley 20.416) y turnos estimados al mes.
+--  · RUT de empresa único sin importar el formato (76.086.428-5 = 76086428-5).
+--  · rut_empresa_disponible(): permite avisar antes de crear la cuenta.
+-- ============================================================================
+set search_path = public, extensions;
+
+alter table public.business_profiles
+  add column sector text check (sector is null or sector in (
+    'Gastronomía y restaurantes', 'Hotelería y turismo', 'Eventos y producción', 'Comercio y retail',
+    'Supermercados', 'Logística y bodegaje', 'Transporte', 'Aseo y servicios generales', 'Construcción',
+    'Oficinas y servicios profesionales', 'Salud', 'Educación', 'Agroindustria', 'Manufactura', 'Otro')),
+  add column employees_range text check (employees_range is null or employees_range in ('1 a 9', '10 a 49', '50 a 199', '200 o más')),
+  add column shifts_per_month text check (shifts_per_month is null or shifts_per_month in ('1 a 5', '6 a 20', '21 a 50', 'Más de 50'));
+
+grant insert (sector, employees_range, shifts_per_month) on public.business_profiles to authenticated;
+grant update (sector, employees_range, shifts_per_month) on public.business_profiles to authenticated;
+
+-- Unicidad del RUT comparando solo dígitos y K.
+create or replace function public.rut_clave(p text) returns text
+language sql immutable as $$ select nullif(upper(regexp_replace(coalesce(p, ''), '[^0-9kK]', '', 'g')), '') $$;
+
+drop index if exists public.business_rut_uq;
+create unique index business_rut_uq on public.business_profiles (public.rut_clave(rut)) where rut is not null;
+
+-- ¿Se puede registrar este RUT de empresa? (false si es inválido o ya existe).
+-- Los RUT de empresa son datos públicos del SII; la función solo responde sí/no.
+create or replace function public.rut_empresa_disponible(p_rut text) returns boolean
+language sql stable security definer set search_path = public as $$
+  select public.rut_is_valid(p_rut)
+     and not exists (select 1 from public.business_profiles where public.rut_clave(rut) = public.rut_clave(p_rut))
+$$;
+
+revoke execute on function public.rut_empresa_disponible(text) from public;
+grant execute on function public.rut_clave(text) to anon, authenticated;
+grant execute on function public.rut_empresa_disponible(text) to anon, authenticated;
+
+$mig1$;
+  end if;
+end $paso1$;
+
+-- >>>>> 20261009000900_preguntas_500
+do $paso2$
+begin
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='job_posts' and column_name='contract_type') then
+    raise notice 'Aplicando 20261009000900_preguntas_500';
+    execute $mig2$
+-- ============================================================================
+-- Migración 9: las preguntas del empleador pueden tener hasta 500 caracteres (antes 200).
+-- ============================================================================
+alter table public.job_questions drop constraint if exists job_questions_prompt_check;
+alter table public.job_questions
+  add constraint job_questions_prompt_check check (length(trim(prompt)) between 5 and 500);
+
+$mig2$;
+  end if;
+end $paso2$;
+
+-- >>>>> 20261009001000_contrato_y_normas
+do $paso3$
+begin
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='job_posts' and column_name='contract_type') then
+    raise notice 'Aplicando 20261009001000_contrato_y_normas';
+    execute $mig3$
+-- ============================================================================
+-- Migración 10: tipo de contrato y normas de publicación.
+--  · contract_type: plazo fijo, por obra o faena, indefinido u honorarios.
+--    Con contrato de trabajo se publica sin cuestionario de modalidad.
+--    Con honorarios se exige el cuestionario y, con 3+ indicios, revisión.
+--  · Normas de publicación (inspiradas en los portales de empleo): se rechazan
+--    datos de contacto, cobros al trabajador, esquemas multinivel, pago solo por
+--    comisión, contenido discriminatorio y títulos en mayúsculas o genéricos.
+--  · Pago por hora inusualmente alto → revisión.
+--  Las mismas reglas están en lib/reglas-publicacion.ts para avisar en el formulario;
+--  si cambias una, cambia la otra.
+-- ============================================================================
+set search_path = public, extensions;
+
+-- ---------------------------------------------------------------------------
+-- 1. Tipo de contrato
+-- ---------------------------------------------------------------------------
+alter table public.job_posts
+  add column contract_type text check (contract_type is null or contract_type in ('plazo_fijo', 'por_obra', 'indefinido', 'honorarios'));
+
+grant insert (contract_type) on public.job_posts to authenticated;
+grant update (contract_type) on public.job_posts to authenticated;
+
+-- engagement_mode se deriva del tipo de contrato para mantener una sola fuente de verdad.
+create or replace function public.sync_engagement_mode() returns trigger
+language plpgsql as $$
+begin
+  if new.contract_type is not null then
+    new.engagement_mode := case when new.contract_type = 'honorarios'
+                                then 'prestacion_independiente' else 'relacion_laboral' end::public.engagement_mode;
+  end if;
+  return new;
+end $$;
+create trigger job_posts_sync_engagement before insert or update of contract_type, engagement_mode on public.job_posts
+  for each row execute function public.sync_engagement_mode();
+
+-- ---------------------------------------------------------------------------
+-- 2. Normas de publicación
+-- ---------------------------------------------------------------------------
+create or replace function public.job_content_issues(p_job uuid) returns text[]
+language plpgsql stable security definer set search_path = public as $$
+declare j public.job_posts; t text; titulo_letras text; titulo_util text; issues text[] := '{}';
+begin
+  select * into j from public.job_posts where id = p_job;
+  if not found then return array['Publicación no encontrada']; end if;
+
+  t := concat_ws(' ', j.title, j.description, j.approx_location, j.breaks_info, j.conditions, j.experience_required,
+                 j.certifications_required, j.attire, j.food_info, j.transport_info, j.additional_requirements, j.tax_doc_info,
+                 (select string_agg(concat_ws(' ', q.prompt, array_to_string(q.options, ' ')), ' ')
+                    from public.job_questions q where q.job_id = p_job));
+
+  if t ~* '[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}'
+     or t ~* '(https?://|www\.)'
+     or t ~* '\m[a-z0-9-]+\.(cl|com|net|org|io|app|link|ly|me)\M'
+     or t ~* '(\+?56[ .-]?)?\m9[ .-]?[0-9]{4}[ .-]?[0-9]{4}\M'
+     or t ~* '\m(whatsapp|whatsap|wsp|wasap|telegram)\M' then
+    issues := array_append(issues, 'datos de contacto (teléfono, correo, enlace o WhatsApp)');
+  end if;
+  if t ~* '(debes|deberás|deberas|tienes que|hay que|se debe)[[:space:]]+(pagar|cancelar|depositar|transferir|comprar)'
+     or t ~* '(costo|valor|precio|pago)[[:space:]]+de[[:space:]]+(la[[:space:]]+)?(inscripci[oó]n|matr[ií]cula|curso|capacitaci[oó]n|credencial|kit)'
+     or t ~* 'inversi[oó]n[[:space:]]+inicial' then
+    issues := array_append(issues, 'cobros al trabajador');
+  end if;
+  if t ~* '(multinivel|piramidal|oportunidad de negocio|network marketing|ingresos ilimitados|s[eé] tu propio jefe)' then
+    issues := array_append(issues, 'esquemas multinivel u oportunidades de negocio');
+  end if;
+  if t ~* '(s[oó]lo|solamente|[uú]nicamente)[[:space:]]+(por[[:space:]]+)?comisi[oó]n' or t ~* 'sin sueldo (base|fijo)' then
+    issues := array_append(issues, 'pago solo por comisión');
+  end if;
+  if t ~* '(buena presencia|sexo (masculino|femenino)|estado civil|sin hijos|no embarazada|religi[oó]n)'
+     or t ~* 's[oó]lo[[:space:]]+(hombres|mujeres|varones|damas|se[nñ]oritas|chilen[oa]s)'
+     or t ~* 'edad[[:space:]]+(entre|m[aá]xima|m[ií]nima)'
+     or t ~* '(menor|mayor)(es)?[[:space:]]+de[[:space:]]+[2-9][0-9][[:space:]]+a[nñ]os' then
+    issues := array_append(issues, 'requisitos discriminatorios (edad, sexo, apariencia, situación familiar, religión o nacionalidad)');
+  end if;
+
+  titulo_letras := regexp_replace(j.title, '[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ]', '', 'g');
+  if length(titulo_letras) >= 6 and titulo_letras = upper(titulo_letras) then
+    issues := array_append(issues, 'título en mayúsculas');
+  end if;
+  titulo_util := trim(regexp_replace(lower(j.title),
+    '\m(se|necesita|necesito|necesitamos|busca|busco|buscamos|urgente|hoy|ya|para|de|un|una|por|favor|oferta|trabajo|empleo|pega|turno|turnos|personal|gente)\M|[^a-záéíóúüñ ]',
+    '', 'g'));
+  if titulo_util = '' then
+    issues := array_append(issues, 'título genérico (indica el puesto, por ejemplo "Garzón para evento")');
+  end if;
+  return issues;
+end $$;
+
+-- ---------------------------------------------------------------------------
+-- 3. Publicar con las nuevas reglas
+-- ---------------------------------------------------------------------------
+create or replace function public.publish_job(p_job uuid) returns public.job_status
+language plpgsql security definer set search_path = public as $$
+declare uid uuid := public._require_user(); j public.job_posts; max_posts int; active_posts int;
+        new_status public.job_status; problemas text[]; motivos text[] := '{}';
+        independiente boolean;
+begin
+  select * into j from public.job_posts where id = p_job for update;
+  if not found or j.business_id <> uid then
+    raise exception 'Publicación no encontrada' using errcode = 'P0002';
+  end if;
+  if j.status <> 'borrador' then
+    raise exception 'Sólo se pueden publicar borradores' using errcode = 'P0001';
+  end if;
+  if j.starts_at <= now() + interval '30 minutes' then
+    raise exception 'El turno debe comenzar al menos 30 minutos después de publicarlo' using errcode = 'P0001';
+  end if;
+  if j.apply_deadline is not null and j.apply_deadline <= now() then
+    raise exception 'La fecha límite para postular ya pasó' using errcode = 'P0001';
+  end if;
+  if j.modality = 'presencial' and not exists (select 1 from public.job_post_private where job_id = p_job) then
+    raise exception 'Debes indicar la dirección del servicio (se comparte sólo con quien contrates)' using errcode = 'P0001';
+  end if;
+
+  problemas := public.job_content_issues(p_job);
+  if cardinality(problemas) > 0 then
+    raise exception 'La publicación no cumple las normas: %', array_to_string(problemas, '; ') using errcode = 'P0001';
+  end if;
+
+  -- El cuestionario de modalidad aplica solo a la prestación independiente (honorarios o sin definir).
+  independiente := j.engagement_mode <> 'relacion_laboral';
+  if independiente then
+    if j.labor_risk is null then
+      raise exception 'Debes responder las preguntas sobre la modalidad de prestación' using errcode = 'P0001';
+    end if;
+    if j.labor_risk in ('medio','alto') and j.labor_warning_ack_at is null then
+      raise exception 'Debes leer y confirmar la advertencia sobre la modalidad de contratación' using errcode = 'P0001';
+    end if;
+  end if;
+
+  select p.max_active_posts into max_posts
+    from public.subscriptions s join public.plans p on p.id = s.plan_id
+   where s.business_id = uid and s.status = 'activa';
+  if not found then select max_active_posts into max_posts from public.plans where id = 'gratis'; end if;
+  select count(*) into active_posts from public.job_posts
+   where business_id = uid and status in ('publicada','con_postulaciones','en_revision');
+  if max_posts is not null and active_posts >= max_posts then
+    raise exception 'Alcanzaste el máximo de % publicaciones activas de tu plan', max_posts using errcode = 'P0001';
+  end if;
+
+  if independiente and j.labor_risk = 'alto' then
+    motivos := array_append(motivos, 'honorarios con indicios de relación laboral');
+  end if;
+  if j.hourly_equivalent_clp > 40000 then
+    motivos := array_append(motivos, 'pago por hora inusualmente alto');
+  end if;
+
+  new_status := case when cardinality(motivos) > 0 then 'en_revision' else 'publicada' end;
+  update public.job_posts
+     set status = new_status,
+         published_at = case when new_status = 'publicada' then now() end,
+         review_note = case when new_status = 'en_revision' then 'Revisión automática: ' || array_to_string(motivos, '; ') end
+   where id = p_job;
+
+  perform public._audit('job.publish', 'job_posts', p_job::text,
+    jsonb_build_object('status', new_status, 'labor_risk', j.labor_risk, 'contract_type', j.contract_type,
+                       'engagement_mode', j.engagement_mode, 'motivos', motivos));
+  if new_status = 'en_revision' then
+    perform public._notify_admins('revision_publicacion', 'Publicación en revisión',
+      format('"%s": %s.', j.title, array_to_string(motivos, '; ')), '/admin/publicaciones/' || p_job);
+  end if;
+  return new_status;
+end $$;
+
+revoke execute on function public.job_content_issues(uuid), public.sync_engagement_mode() from public, anon, authenticated;
+grant execute on function public.publish_job(uuid) to authenticated;
+
+$mig3$;
+  end if;
+end $paso3$;
+
+-- >>>>> 20261009001100_condiciones_empleador
+do $paso4$
+begin
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='job_posts' and column_name='employer_terms_version') then
+    raise notice 'Aplicando 20261009001100_condiciones_empleador';
+    execute $mig4$
+-- ============================================================================
+-- Migración 11: aceptación obligatoria de las condiciones del empleador.
+-- Cada turno guarda la versión del texto aceptado y la fecha. No se publica sin aceptación.
+-- El texto vigente está en lib/condiciones.ts (CONDICIONES_VERSION).
+-- ============================================================================
+set search_path = public, extensions;
+
+alter table public.job_posts
+  add column employer_terms_version     text check (employer_terms_version is null or length(employer_terms_version) <= 20),
+  add column employer_terms_accepted_at timestamptz,
+  add constraint job_posts_terms_ok check ((employer_terms_version is null) = (employer_terms_accepted_at is null));
+
+grant insert (employer_terms_version, employer_terms_accepted_at) on public.job_posts to authenticated;
+grant update (employer_terms_version, employer_terms_accepted_at) on public.job_posts to authenticated;
+
+create or replace function public.enforce_employer_terms() returns trigger
+language plpgsql security definer set search_path = public as $$
+begin
+  if old.status = 'borrador' and new.status in ('publicada', 'en_revision') and new.employer_terms_accepted_at is null then
+    raise exception 'Debes aceptar las condiciones del empleador antes de publicar' using errcode = 'P0001';
+  end if;
+  return new;
+end $$;
+
+create trigger job_posts_employer_terms before update of status on public.job_posts
+  for each row execute function public.enforce_employer_terms();
+
+revoke execute on function public.enforce_employer_terms() from public, anon, authenticated;
+
+$mig4$;
+  end if;
+end $paso4$;
+
+-- >>>>> 20261009001200_revision_posterior
+do $paso5$
+begin
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='job_posts' and column_name='followup_reason') then
+    raise notice 'Aplicando 20261009001200_revision_posterior';
+    execute $mig5$
+-- ============================================================================
+-- Migración 12: revisión solo cuando hace falta.
+--  · Honorarios con 3+ indicios de relación laboral: ya NO bloquea. Se publica de inmediato,
+--    queda marcado para revisión posterior (followup_*) y el trabajador ve un aviso de sus derechos.
+--  · Siguen bloqueadas al instante las publicaciones que no cumplen las normas
+--    (discriminación, contacto, cobros, multinivel, etc.).
+--  · Sigue yendo a revisión previa el pago por hora inusualmente alto (señal de fraude).
+-- ============================================================================
+set search_path = public, extensions;
+
+alter table public.job_posts
+  add column followup_reason text,
+  add column followup_status text check (followup_status is null or followup_status in ('pendiente', 'revisado')),
+  add column followup_note   text,
+  add constraint job_posts_followup_ok check ((followup_reason is null) = (followup_status is null));
+
+create or replace function public.publish_job(p_job uuid) returns public.job_status
+language plpgsql security definer set search_path = public as $$
+declare uid uuid := public._require_user(); j public.job_posts; max_posts int; active_posts int;
+        new_status public.job_status; problemas text[]; motivos text[] := '{}'; seguimiento text;
+        independiente boolean;
+begin
+  select * into j from public.job_posts where id = p_job for update;
+  if not found or j.business_id <> uid then
+    raise exception 'Publicación no encontrada' using errcode = 'P0002';
+  end if;
+  if j.status <> 'borrador' then
+    raise exception 'Sólo se pueden publicar borradores' using errcode = 'P0001';
+  end if;
+  if j.starts_at <= now() + interval '30 minutes' then
+    raise exception 'El turno debe comenzar al menos 30 minutos después de publicarlo' using errcode = 'P0001';
+  end if;
+  if j.apply_deadline is not null and j.apply_deadline <= now() then
+    raise exception 'La fecha límite para postular ya pasó' using errcode = 'P0001';
+  end if;
+  if j.modality = 'presencial' and not exists (select 1 from public.job_post_private where job_id = p_job) then
+    raise exception 'Debes indicar la dirección del servicio (se comparte sólo con quien contrates)' using errcode = 'P0001';
+  end if;
+
+  problemas := public.job_content_issues(p_job);
+  if cardinality(problemas) > 0 then
+    raise exception 'La publicación no cumple las normas: %', array_to_string(problemas, '; ') using errcode = 'P0001';
+  end if;
+
+  -- El cuestionario de modalidad aplica solo a la prestación independiente (honorarios o sin definir).
+  independiente := j.engagement_mode <> 'relacion_laboral';
+  if independiente then
+    if j.labor_risk is null then
+      raise exception 'Debes responder las preguntas sobre la modalidad de prestación' using errcode = 'P0001';
+    end if;
+    if j.labor_risk in ('medio','alto') and j.labor_warning_ack_at is null then
+      raise exception 'Debes leer y confirmar la advertencia sobre la modalidad de contratación' using errcode = 'P0001';
+    end if;
+  end if;
+
+  select p.max_active_posts into max_posts
+    from public.subscriptions s join public.plans p on p.id = s.plan_id
+   where s.business_id = uid and s.status = 'activa';
+  if not found then select max_active_posts into max_posts from public.plans where id = 'gratis'; end if;
+  select count(*) into active_posts from public.job_posts
+   where business_id = uid and status in ('publicada','con_postulaciones','en_revision');
+  if max_posts is not null and active_posts >= max_posts then
+    raise exception 'Alcanzaste el máximo de % publicaciones activas de tu plan', max_posts using errcode = 'P0001';
+  end if;
+
+  -- Honorarios con indicios: se publica de inmediato y queda marcado para revisión posterior (no bloquea).
+  if independiente and j.labor_risk = 'alto' then
+    seguimiento := 'Boleta de honorarios con indicios de relación laboral';
+  end if;
+  if j.hourly_equivalent_clp > 40000 then
+    motivos := array_append(motivos, 'pago por hora inusualmente alto');
+  end if;
+
+  new_status := case when cardinality(motivos) > 0 then 'en_revision' else 'publicada' end;
+  update public.job_posts
+     set status = new_status,
+         published_at = case when new_status = 'publicada' then now() end,
+         review_note = case when new_status = 'en_revision' then 'Revisión automática: ' || array_to_string(motivos, '; ') end,
+         followup_reason = seguimiento,
+         followup_status = case when seguimiento is not null then 'pendiente' end
+   where id = p_job;
+
+  perform public._audit('job.publish', 'job_posts', p_job::text,
+    jsonb_build_object('status', new_status, 'labor_risk', j.labor_risk, 'contract_type', j.contract_type,
+                       'engagement_mode', j.engagement_mode, 'motivos', motivos, 'seguimiento', seguimiento));
+  if new_status = 'en_revision' then
+    perform public._notify_admins('revision_publicacion', 'Publicación en revisión',
+      format('"%s": %s.', j.title, array_to_string(motivos, '; ')), '/admin/publicaciones/' || p_job);
+  elsif seguimiento is not null then
+    perform public._notify_admins('seguimiento_publicacion', 'Turno publicado para revisar después',
+      format('"%s": %s.', j.title, seguimiento), '/admin/publicaciones/' || p_job);
+  end if;
+  return new_status;
+end $$;
+
+
+grant execute on function public.publish_job(uuid) to authenticated;
+
+$mig5$;
+  end if;
+end $paso5$;
+
+-- >>>>> 20261009001300_umbral_pago
+do $paso6$
+begin
+  if not exists (select 1 from public.platform_settings where key='max_hourly_review_clp') then
+    raise notice 'Aplicando 20261009001300_umbral_pago';
+    execute $mig6$
+-- ============================================================================
+-- Migración 13: el monto del pago ya NO lleva a revisión.
+-- La revisión por "pago por hora inusualmente alto" queda desactivada (valor 0) y es configurable
+-- en platform_settings ('max_hourly_review_clp'). Para activarla con un tope, por ejemplo $20.000:
+--   update platform_settings set value = '20000' where key = 'max_hourly_review_clp';
+-- El pago debe seguir siendo mayor a $0 (check de job_posts): no se permite trabajo sin pago.
+-- ============================================================================
+set search_path = public, extensions;
+
+insert into public.platform_settings (key, value) values ('max_hourly_review_clp', '0')
+on conflict (key) do nothing;
+
+create or replace function public.publish_job(p_job uuid) returns public.job_status
+language plpgsql security definer set search_path = public as $$
+declare uid uuid := public._require_user(); j public.job_posts; max_posts int; active_posts int;
+        new_status public.job_status; problemas text[]; motivos text[] := '{}'; seguimiento text;
+        independiente boolean;
+begin
+  select * into j from public.job_posts where id = p_job for update;
+  if not found or j.business_id <> uid then
+    raise exception 'Publicación no encontrada' using errcode = 'P0002';
+  end if;
+  if j.status <> 'borrador' then
+    raise exception 'Sólo se pueden publicar borradores' using errcode = 'P0001';
+  end if;
+  if j.starts_at <= now() + interval '30 minutes' then
+    raise exception 'El turno debe comenzar al menos 30 minutos después de publicarlo' using errcode = 'P0001';
+  end if;
+  if j.apply_deadline is not null and j.apply_deadline <= now() then
+    raise exception 'La fecha límite para postular ya pasó' using errcode = 'P0001';
+  end if;
+  if j.modality = 'presencial' and not exists (select 1 from public.job_post_private where job_id = p_job) then
+    raise exception 'Debes indicar la dirección del servicio (se comparte sólo con quien contrates)' using errcode = 'P0001';
+  end if;
+
+  problemas := public.job_content_issues(p_job);
+  if cardinality(problemas) > 0 then
+    raise exception 'La publicación no cumple las normas: %', array_to_string(problemas, '; ') using errcode = 'P0001';
+  end if;
+
+  -- El cuestionario de modalidad aplica solo a la prestación independiente (honorarios o sin definir).
+  independiente := j.engagement_mode <> 'relacion_laboral';
+  if independiente then
+    if j.labor_risk is null then
+      raise exception 'Debes responder las preguntas sobre la modalidad de prestación' using errcode = 'P0001';
+    end if;
+    if j.labor_risk in ('medio','alto') and j.labor_warning_ack_at is null then
+      raise exception 'Debes leer y confirmar la advertencia sobre la modalidad de contratación' using errcode = 'P0001';
+    end if;
+  end if;
+
+  select p.max_active_posts into max_posts
+    from public.subscriptions s join public.plans p on p.id = s.plan_id
+   where s.business_id = uid and s.status = 'activa';
+  if not found then select max_active_posts into max_posts from public.plans where id = 'gratis'; end if;
+  select count(*) into active_posts from public.job_posts
+   where business_id = uid and status in ('publicada','con_postulaciones','en_revision');
+  if max_posts is not null and active_posts >= max_posts then
+    raise exception 'Alcanzaste el máximo de % publicaciones activas de tu plan', max_posts using errcode = 'P0001';
+  end if;
+
+  -- Honorarios con indicios: se publica de inmediato y queda marcado para revisión posterior (no bloquea).
+  if independiente and j.labor_risk = 'alto' then
+    seguimiento := 'Boleta de honorarios con indicios de relación laboral';
+  end if;
+  if public._setting_int('max_hourly_review_clp', 0) > 0
+     and j.hourly_equivalent_clp > public._setting_int('max_hourly_review_clp', 0) then
+    motivos := array_append(motivos, 'pago por hora inusualmente alto');
+  end if;
+
+  new_status := case when cardinality(motivos) > 0 then 'en_revision' else 'publicada' end;
+  update public.job_posts
+     set status = new_status,
+         published_at = case when new_status = 'publicada' then now() end,
+         review_note = case when new_status = 'en_revision' then 'Revisión automática: ' || array_to_string(motivos, '; ') end,
+         followup_reason = seguimiento,
+         followup_status = case when seguimiento is not null then 'pendiente' end
+   where id = p_job;
+
+  perform public._audit('job.publish', 'job_posts', p_job::text,
+    jsonb_build_object('status', new_status, 'labor_risk', j.labor_risk, 'contract_type', j.contract_type,
+                       'engagement_mode', j.engagement_mode, 'motivos', motivos, 'seguimiento', seguimiento));
+  if new_status = 'en_revision' then
+    perform public._notify_admins('revision_publicacion', 'Publicación en revisión',
+      format('"%s": %s.', j.title, array_to_string(motivos, '; ')), '/admin/publicaciones/' || p_job);
+  elsif seguimiento is not null then
+    perform public._notify_admins('seguimiento_publicacion', 'Turno publicado para revisar después',
+      format('"%s": %s.', j.title, seguimiento), '/admin/publicaciones/' || p_job);
+  end if;
+  return new_status;
+end $$;
+
+
+grant execute on function public.publish_job(uuid) to authenticated;
+
+$mig6$;
+  end if;
+end $paso6$;
+
+-- >>>>> 20261009001400_conteo_postulantes
+do $paso7$
+begin
+  if to_regprocedure('public.job_applicant_counts(uuid[])') is null then
+    raise notice 'Aplicando 20261009001400_conteo_postulantes';
+    execute $mig7$
+-- ============================================================================
+-- Migración 14: número de postulantes por turno, para "Mis postulaciones".
+-- El trabajador solo puede leer su propia postulación (RLS), así que el conteo se entrega
+-- con una función que devuelve únicamente cifras, de turnos que el usuario puede ver.
+-- ============================================================================
+set search_path = public, extensions;
+
+create or replace function public.job_applicant_counts(p_jobs uuid[])
+returns table (job_id uuid, applicants bigint)
+language sql stable security definer set search_path = public as $$
+  select j.id, (select count(*) from public.applications a where a.job_id = j.id and a.status not in ('retirada'))
+  from public.job_posts j
+  where j.id = any(p_jobs)
+    and (j.business_id = auth.uid()
+         or exists (select 1 from public.applications a where a.job_id = j.id and a.worker_id = auth.uid())
+         or public.job_is_listed(j.status))
+$$;
+
+revoke execute on function public.job_applicant_counts(uuid[]) from public, anon;
+grant execute on function public.job_applicant_counts(uuid[]) to authenticated;
+
+$mig7$;
+  end if;
+end $paso7$;
+
+-- >>>>> 20261009001500_trabajador_cv_inasistencia
+do $paso8$
+begin
+  if to_regclass('public.worker_private') is null then
+    raise notice 'Aplicando 20261009001500_trabajador_cv_inasistencia';
+    execute $mig8$
 -- ============================================================================
 -- Migración 15: perfil del trabajador, CV e inasistencias.
 --  · worker_private: dirección del trabajador (privada: solo él y administración).
@@ -359,7 +1105,16 @@ begin
   end if;
 end $$;
 
--- >>>>> supabase/migrations/20261009001600_sin_inasistencias.sql
+$mig8$;
+  end if;
+end $paso8$;
+
+-- >>>>> 20261009001600_sin_inasistencias
+do $paso9$
+begin
+  if to_regclass('public.worker_suspensions') is not null then
+    raise notice 'Aplicando 20261009001600_sin_inasistencias';
+    execute $mig9$
 -- ============================================================================
 -- TurnoExpress · Migración 16: sin gestión de inasistencias
 -- La asistencia al turno es un asunto entre la empresa y el trabajador: la plataforma
@@ -529,7 +1284,16 @@ revoke execute on function public.respond_offer(uuid, boolean, boolean, text),
 grant execute on function public.respond_offer(uuid, boolean, boolean, text),
   public.apply_to_job(uuid, boolean, text, text, jsonb) to authenticated;
 
--- >>>>> supabase/migrations/20261009001700_portal_de_ofertas.sql
+$mig9$;
+  end if;
+end $paso9$;
+
+-- >>>>> 20261009001700_portal_de_ofertas
+do $paso10$
+begin
+  if not exists (select 1 from information_schema.columns where table_schema='public' and table_name='business_profiles' and column_name='trial_ends_at') then
+    raise notice 'Aplicando 20261009001700_portal_de_ofertas';
+    execute $mig10$
 -- ============================================================================
 -- TurnoExpress · Migración 17: portal de difusión de ofertas
 -- TurnoExpress solo difunde ofertas y recibe postulaciones. No participa en la selección,
@@ -935,4 +1699,10 @@ grant execute on function public.job_applicant_contacts(uuid), public.publish_jo
 revoke execute on function public._cancel_job(uuid, uuid, text) from authenticated;
 grant execute on function public.refresh_time_states() to service_role;
 
+$mig10$;
+  end if;
+end $paso10$;
+
+set search_path = public, extensions;
 notify pgrst, 'reload schema';
+select 'Base actualizada a la migración 17' as resultado;

@@ -20,3 +20,8 @@ No verificado aún: migración 5 (Storage y pg_cron) — requiere un proyecto Su
 
 ## Etapa 2 — Siguiente
 Proyecto Next.js, identidad visual, registro/ingreso con selección de rol, perfiles de empresa y trabajador, layout móvil con navegación por rol. Datos demo marcados.
+
+## Cobertura nacional ✅ (09/10/2026)
+- Migración 6: las 16 regiones (ordenadas norte → sur) y las 346 comunas de Chile, todas activas. Probada en PostgreSQL 16; las 81 pruebas siguen pasando.
+- Formulario de publicación: se elige región y luego comuna.
+- Pendiente: coordenadas por comuna para el filtro "cerca de mí".

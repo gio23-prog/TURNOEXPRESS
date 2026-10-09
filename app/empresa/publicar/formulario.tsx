@@ -12,6 +12,7 @@ import {
   type Borrador,
   type Categoria,
   type Comuna,
+  type Region,
 } from "@/lib/schemas/publicar";
 import { publicarTurno } from "./actions";
 
@@ -19,7 +20,7 @@ const PASOS = ["Qué", "Cuándo y dónde", "Pago y condiciones", "Modalidad", "V
 
 const inicial: Borrador = {
   categoria: "", titulo: "", descripcion: "", cupos: "1",
-  fecha: "", inicio: "09:00", termino: "17:00", comuna: "", direccion: "", urgente: false,
+  fecha: "", inicio: "09:00", termino: "17:00", region: "", comuna: "", direccion: "", urgente: false,
   modoPago: "total", monto: "", pausas: "", vestimenta: "", alimentacion: false, transporte: false,
   respuestas: {}, confirmaAdvertencia: false,
 };
@@ -61,7 +62,15 @@ function SiNo({ valor, onChange }: { valor?: boolean; onChange: (v: boolean) => 
   );
 }
 
-export default function FormularioPublicar({ categorias, comunas }: { categorias: Categoria[]; comunas: Comuna[] }) {
+export default function FormularioPublicar({
+  categorias,
+  regiones,
+  comunas,
+}: {
+  categorias: Categoria[];
+  regiones: Region[];
+  comunas: Comuna[];
+}) {
   const [paso, setPaso] = useState(0);
   const [d, setD] = useState<Borrador>(inicial);
   const [err, setErr] = useState<Record<string, string>>({});
@@ -76,6 +85,8 @@ export default function FormularioPublicar({ categorias, comunas }: { categorias
   const nombreCategoria = categorias.flatMap((c) => c.subcategorias.map((s) => ({ ...s, padre: c.nombre })))
     .find((s) => String(s.id) === d.categoria);
   const nombreComuna = comunas.find((c) => String(c.id) === d.comuna)?.nombre ?? "";
+  const nombreRegion = regiones.find((r) => String(r.id) === d.region)?.nombre ?? "";
+  const comunasRegion = comunas.filter((c) => String(c.regionId) === d.region);
   const fechaTxt = d.fecha ? d.fecha.split("-").reverse().join("/") : "";
 
   function siguiente() {
@@ -161,10 +172,20 @@ export default function FormularioPublicar({ categorias, comunas }: { categorias
             <p className="text-sm text-stone-600">
               Duración: {Math.floor(mins / 60)} h {mins % 60} min{d.termino <= d.inicio && mins > 0 ? " (termina al día siguiente)" : ""}
             </p>
+            <Campo label="Región" error={err.region}>
+              <select
+                className={input}
+                value={d.region}
+                onChange={(e) => setD((p) => ({ ...p, region: e.target.value, comuna: "" }))}
+              >
+                <option value="">Elige una región</option>
+                {regiones.map((r) => <option key={r.id} value={r.id}>{r.nombre}</option>)}
+              </select>
+            </Campo>
             <Campo label="Comuna" error={err.comuna}>
-              <select className={input} value={d.comuna} onChange={(e) => set("comuna", e.target.value)}>
-                <option value="">Elige una comuna</option>
-                {comunas.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+              <select className={input} value={d.comuna} disabled={!d.region} onChange={(e) => set("comuna", e.target.value)}>
+                <option value="">{d.region ? "Elige una comuna" : "Primero elige una región"}</option>
+                {comunasRegion.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
               </select>
             </Campo>
             <Campo label="Dirección exacta (solo la verá quien sea contratado)" error={err.direccion}>
@@ -233,7 +254,7 @@ export default function FormularioPublicar({ categorias, comunas }: { categorias
                 ["Cupos", d.cupos],
                 ["Fecha", fechaTxt],
                 ["Horario", `${d.inicio} a ${d.termino} (${Math.floor(mins / 60)} h ${mins % 60} min)`],
-                ["Comuna", nombreComuna],
+                ["Ubicación", nombreComuna ? `${nombreComuna}, ${nombreRegion}` : ""],
                 ["Pago", `${clp(pago.total)} total, ${clp(pago.valorHora)} por hora`],
                 ["Condiciones", [d.alimentacion && "alimentación", d.transporte && "transporte"].filter(Boolean).join(" y ") || "Sin extras"],
               ].map(([k, v]) => (

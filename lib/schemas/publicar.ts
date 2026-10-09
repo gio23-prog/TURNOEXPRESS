@@ -2,7 +2,8 @@ import { z } from "zod";
 
 // Las categorías y comunas se cargan desde Supabase (tablas `categories` y `comunas`).
 export type Categoria = { id: number; nombre: string; subcategorias: { id: number; nombre: string }[] };
-export type Comuna = { id: number; nombre: string };
+export type Region = { id: number; nombre: string };
+export type Comuna = { id: number; nombre: string; regionId: number };
 
 // Deben coincidir con las columnas q_* de job_posts y con compute_labor_risk() en la base.
 // "indicaSi" = la respuesta que suma un indicio de relación laboral.
@@ -25,6 +26,7 @@ export type Borrador = {
   fecha: string; // AAAA-MM-DD (input date)
   inicio: string; // HH:MM
   termino: string; // HH:MM
+  region: string; // id de región (solo para filtrar comunas en el formulario)
   comuna: string; // id de comuna
   direccion: string;
   urgente: boolean;
@@ -53,6 +55,7 @@ export const paso2 = z
     fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Elige una fecha"),
     inicio: hora,
     termino: hora,
+    region: idNumerico("Elige una región"),
     comuna: idNumerico("Elige una comuna"),
     direccion: z.string().trim().min(5, "Escribe la dirección exacta").max(200, "Máximo 200 caracteres"),
   })
@@ -140,7 +143,7 @@ export function validarPaso(n: number, d: Borrador): Record<string, string> {
     n === 0
       ? paso1.safeParse({ categoria: d.categoria, titulo: d.titulo, descripcion: d.descripcion, cupos: Number(d.cupos) })
       : n === 1
-        ? paso2.safeParse({ fecha: d.fecha, inicio: d.inicio, termino: d.termino, comuna: d.comuna, direccion: d.direccion })
+        ? paso2.safeParse({ fecha: d.fecha, inicio: d.inicio, termino: d.termino, region: d.region, comuna: d.comuna, direccion: d.direccion })
         : paso3.safeParse({ monto: Number(d.monto), pausas: d.pausas, vestimenta: d.vestimenta });
   return res.success ? {} : aMapa(res.error.issues);
 }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { Categoria, Comuna } from "@/lib/schemas/publicar";
+import type { Categoria, Comuna, Region } from "@/lib/schemas/publicar";
 import FormularioPublicar from "./formulario";
 
 export default async function PublicarTurnoPage() {
@@ -21,17 +21,18 @@ export default async function PublicarTurnoPage() {
     );
   }
 
-  const [{ data: cats, error: errCats }, { data: coms, error: errComs }] = await Promise.all([
+  const [{ data: cats, error: errCats }, { data: regs, error: errRegs }, { data: coms, error: errComs }] = await Promise.all([
     supabase.from("categories").select("id, name, parent_id, sort_order").eq("active", true).order("sort_order").order("name"),
-    supabase.from("comunas").select("id, name").eq("active", true).order("name"),
+    supabase.from("regions").select("id, name, sort_order").eq("active", true).order("sort_order"),
+    supabase.from("comunas").select("id, name, region_id").eq("active", true).order("name"),
   ]);
 
-  if (errCats || errComs || !cats?.length || !coms?.length) {
+  if (errCats || errRegs || errComs || !cats?.length || !regs?.length || !coms?.length) {
     return (
       <main className="mx-auto max-w-xl p-6">
         <h1 className="text-2xl font-semibold text-stone-900">No pudimos cargar el formulario</h1>
         <p className="mt-2 text-stone-700">
-          Faltan las categorías o comunas en la base de datos. Revisa que las migraciones estén aplicadas en Supabase.
+          Faltan las categorías, regiones o comunas en la base de datos. Revisa que las migraciones estén aplicadas en Supabase.
         </p>
       </main>
     );
@@ -46,7 +47,8 @@ export default async function PublicarTurnoPage() {
     }))
     .filter((c) => c.subcategorias.length > 0);
 
-  const comunas: Comuna[] = coms.map((c) => ({ id: c.id, nombre: c.name }));
+  const regiones: Region[] = regs.map((r) => ({ id: r.id, nombre: r.name }));
+  const comunas: Comuna[] = coms.map((c) => ({ id: c.id, nombre: c.name, regionId: c.region_id }));
 
-  return <FormularioPublicar categorias={categorias} comunas={comunas} />;
+  return <FormularioPublicar categorias={categorias} regiones={regiones} comunas={comunas} />;
 }

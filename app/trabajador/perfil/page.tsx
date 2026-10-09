@@ -105,7 +105,7 @@ export default async function PerfilTrabajador({
             datosOk ? (
               <FormCV
                 actual={wp?.cv_path ? { subido: wp.cv_uploaded_at ? fecha(wp.cv_uploaded_at) : null } : null}
-                siguiente="/trabajador/perfil?paso=perfil"
+                siguiente="/trabajador/perfil?paso=perfil&cv=1"
               />
             ) : (
               <Pendiente texto="Antes de subir tu currículum completa tus datos personales." href="/trabajador/perfil?paso=datos" />
@@ -118,6 +118,8 @@ export default async function PerfilTrabajador({
                 regiones={regiones}
                 comunas={comunas}
                 regionInicial={comunaPropia ? String(comunaPropia.regionId) : ""}
+                tieneCV={cvOk}
+                leerAlAbrir={sp.cv === "1"}
                 inicial={{
                   nombreVisible: wp.display_name,
                   descripcion: wp.bio ?? "",

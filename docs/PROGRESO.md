@@ -115,3 +115,9 @@ Proyecto Next.js, identidad visual, registro/ingreso con selección de rol, perf
 - Mes gratis: business_profiles.trial_ends_at (registro + 1 mes), visible en Mi empresa y Mis ofertas. Aún no hay cobros.
 - Textos: "oferta" en toda la web; Términos y Privacidad reescritos como portal de difusión; pie con aviso.
 - 131 pruebas de base de datos pasando.
+
+## Completar el perfil con el CV ✅ (09/10/2026)
+- lib/cv-lectura.ts (librería unpdf): lee el texto del PDF y sugiere "Sobre ti" (sección Perfil/Resumen), "Experiencia" (sección Experiencia laboral), años de experiencia, rubros (palabras clave) y comunas mencionadas.
+- Reglas simples, sin IA. Solo completa campos vacíos y no guarda: la persona revisa y presiona "Guardar perfil".
+- Botón "Completar con mi currículum" en el paso Perfil; se ejecuta solo al llegar desde la primera subida del CV.
+- No funciona con PDF escaneados (sin texto): se avisa.

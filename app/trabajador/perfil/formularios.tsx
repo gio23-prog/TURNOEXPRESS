@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition, type FormEvent } from "react";
+import { useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Campo, campo } from "@/app/registro/trabajador";
 import { formatearRut, limpiarRut, rutValido } from "@/lib/rut";
@@ -8,7 +8,7 @@ import {
   datosPersonalesSchema, errores, perfilProfesionalSchema,
   type DatosPersonalesInput, type PerfilProfesionalInput,
 } from "@/lib/schemas/trabajador";
-import { guardarDatos, guardarPerfil, subirCV } from "./actions";
+import { guardarDatos, guardarPerfil, subirCV, sugerenciasDesdeCV } from "./actions";
 
 type Opcion = { id: number; nombre: string };
 type Comuna = Opcion & { regionId: number };
@@ -180,9 +180,10 @@ export function FormCV({ actual, siguiente }: { actual: { subido: string | null 
 
 // 3. Perfil profesional ---------------------------------------------------------
 export function FormPerfil({
-  inicial, rubros, regiones, comunas, regionInicial,
+  inicial, rubros, regiones, comunas, regionInicial, tieneCV, leerAlAbrir,
 }: {
   inicial: PerfilProfesionalInput; rubros: Opcion[]; regiones: Opcion[]; comunas: Comuna[]; regionInicial: string;
+  tieneCV: boolean; leerAlAbrir: boolean;
 }) {
   const router = useRouter();
   const [d, setD] = useState(inicial);
@@ -195,6 +196,37 @@ export function FormPerfil({
     setD((p) => ({ ...p, [k]: p[k].includes(id) ? p[k].filter((x) => x !== id) : [...p[k], id] }));
   const nombreComuna = new Map(comunas.map((c) => [c.id, c.nombre]));
   const comunasRegion = comunas.filter((c) => String(c.regionId) === region);
+  const [leyendo, iniciarLectura] = useTransition();
+  const [msgCV, setMsgCV] = useState<Msg>(null);
+
+  // Completa solo los campos vacíos con lo que encontramos en el CV. No guarda: la persona revisa y guarda.
+  function completarDesdeCV() {
+    iniciarLectura(async () => {
+      const r = await sugerenciasDesdeCV();
+      setMsgCV({ ok: r.ok, texto: r.mensaje });
+      const s = r.sugerencias;
+      if (!s) return;
+      setD((p) => ({
+        ...p,
+        descripcion: p.descripcion.trim() ? p.descripcion : s.descripcion,
+        experiencia: p.experiencia.trim() ? p.experiencia : s.experiencia,
+        anios: p.anios ? p.anios : s.anios,
+        rubros: [...new Set([...p.rubros, ...s.rubros])],
+        comunas: [...new Set([...p.comunas, ...s.comunas])].slice(0, 60),
+      }));
+    });
+  }
+
+  const vacio = !inicial.descripcion && !inicial.experiencia && inicial.rubros.length === 0;
+  const yaLeido = useRef(false);
+  useEffect(() => {
+    if (leerAlAbrir && tieneCV && vacio && !yaLeido.current) {
+      yaLeido.current = true;
+      completarDesdeCV();
+    }
+    // Solo al abrir la página después de subir el CV.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function enviar(e: FormEvent) {
     e.preventDefault();
@@ -215,6 +247,17 @@ export function FormPerfil({
         <h2 className="text-lg font-bold">Perfil</h2>
         <p className="text-sm text-stone-600">Es lo que ven las empresas cuando postulas a una de sus ofertas.</p>
       </div>
+
+      {tieneCV && (
+        <div className="flex flex-col gap-2 rounded-xl border border-teal-200 bg-teal-50 p-3 text-sm text-teal-950 sm:flex-row sm:items-center sm:justify-between">
+          <p>Podemos completar los campos vacíos con la información de tu currículum.</p>
+          <button type="button" disabled={leyendo} onClick={completarDesdeCV}
+            className="shrink-0 rounded-lg bg-teal-700 px-4 py-2 font-semibold text-white hover:bg-teal-800 disabled:opacity-60">
+            {leyendo ? "Leyendo tu currículum..." : "Completar con mi currículum"}
+          </button>
+        </div>
+      )}
+      <Aviso msg={msgCV} />
 
       <Campo id="nombreVisible" label="Nombre que ven las empresas" ayuda="Por ejemplo, tu nombre y la inicial de tu apellido." error={err.nombreVisible}>
         <input id="nombreVisible" className={campo} maxLength={60} value={d.nombreVisible} onChange={(e) => set("nombreVisible", e.target.value)} />

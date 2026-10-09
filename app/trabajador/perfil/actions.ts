@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { guardarDatosPersonales } from "@/lib/trabajador";
+import { sugerirPerfil, textoDePDF, type Sugerencias } from "@/lib/cv-lectura";
 import {
   datosPersonalesSchema, errores, perfilProfesionalSchema,
   type DatosPersonalesInput, type PerfilProfesionalInput,
@@ -92,4 +93,38 @@ export async function guardarPerfil(datos: PerfilProfesionalInput): Promise<Resu
 
   revalidatePath("/trabajador/perfil");
   return { ok: true, mensaje: "Perfil guardado." };
+}
+
+/** Lee el CV vigente y propone datos para el perfil. No guarda nada: la persona revisa y guarda. */
+export async function sugerenciasDesdeCV(): Promise<{ ok: boolean; mensaje: string; sugerencias?: Sugerencias }> {
+  const { supabase, uid, error } = await usuarioTrabajador();
+  if (!uid) return { ok: false, mensaje: error! };
+  const { data: wp } = await supabase.from("worker_profiles").select("cv_path").eq("user_id", uid).maybeSingle();
+  if (!wp?.cv_path) return { ok: false, mensaje: "Primero sube tu currículum." };
+
+  const { data: archivo, error: eDescarga } = await supabase.storage.from("curriculums").download(wp.cv_path);
+  if (eDescarga || !archivo) return { ok: false, mensaje: "No pudimos abrir tu currículum. Intenta de nuevo." };
+
+  let texto = "";
+  try {
+    texto = await textoDePDF(new Uint8Array(await archivo.arrayBuffer()));
+  } catch {
+    return { ok: false, mensaje: "No pudimos leer tu currículum. Completa el perfil a mano." };
+  }
+  if (texto.replace(/\s/g, "").length < 50) {
+    return { ok: false, mensaje: "Tu currículum parece ser una imagen escaneada y no tiene texto que podamos leer. Completa el perfil a mano." };
+  }
+
+  const [{ data: cats }, { data: coms }] = await Promise.all([
+    supabase.from("categories").select("id, name").is("parent_id", null).eq("active", true),
+    supabase.from("comunas").select("id, name").eq("active", true),
+  ]);
+  const sugerencias = sugerirPerfil(
+    texto,
+    (cats ?? []).map((c) => ({ id: c.id as number, nombre: c.name as string })),
+    (coms ?? []).map((c) => ({ id: c.id as number, nombre: c.name as string })),
+  );
+  const algo = sugerencias.descripcion || sugerencias.experiencia || sugerencias.anios || sugerencias.rubros.length || sugerencias.comunas.length;
+  if (!algo) return { ok: false, mensaje: "No encontramos datos para completar en tu currículum. Completa el perfil a mano." };
+  return { ok: true, mensaje: "Completamos los campos vacíos con tu currículum. Revísalos y corrige lo que haga falta antes de guardar.", sugerencias };
 }

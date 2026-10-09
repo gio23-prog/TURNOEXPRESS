@@ -24,11 +24,14 @@ export default async function PublicarTurnoPage() {
 
   if (!(await empresaCompleta(supabase, auth.user.id))) redirect(RUTA_COMPLETAR_EMPRESA);
 
-  const [{ data: cats, error: errCats }, { data: regs, error: errRegs }, { data: coms, error: errComs }] = await Promise.all([
+  const [{ data: cats, error: errCats }, { data: regs, error: errRegs }, { data: coms, error: errComs }, { data: umbral }] = await Promise.all([
     supabase.from("categories").select("id, name, parent_id, sort_order").eq("active", true).order("sort_order").order("name"),
     supabase.from("regions").select("id, name, sort_order").eq("active", true).order("sort_order"),
     supabase.from("comunas").select("id, name, region_id").eq("active", true).order("name"),
+    supabase.from("platform_settings").select("value").eq("key", "max_hourly_review_clp").maybeSingle(),
   ]);
+  // Mismo umbral que usa la base al publicar (configurable en platform_settings).
+  const umbralPagoHora = Number(umbral?.value) || 0; // 0 = revisión por monto desactivada
 
   if (errCats || errRegs || errComs || !cats?.length || !regs?.length || !coms?.length) {
     return (
@@ -53,5 +56,5 @@ export default async function PublicarTurnoPage() {
   const regiones: Region[] = regs.map((r) => ({ id: r.id, nombre: r.name }));
   const comunas: Comuna[] = coms.map((c) => ({ id: c.id, nombre: c.name, regionId: c.region_id }));
 
-  return <FormularioPublicar categorias={categorias} regiones={regiones} comunas={comunas} />;
+  return <FormularioPublicar categorias={categorias} regiones={regiones} comunas={comunas} umbralPagoHora={umbralPagoHora} />;
 }

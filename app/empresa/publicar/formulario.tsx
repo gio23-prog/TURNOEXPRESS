@@ -69,10 +69,12 @@ export default function FormularioPublicar({
   categorias,
   regiones,
   comunas,
+  umbralPagoHora,
 }: {
   categorias: Categoria[];
   regiones: Region[];
   comunas: Comuna[];
+  umbralPagoHora: number;
 }) {
   const [paso, setPaso] = useState(0);
   const [d, setD] = useState<Borrador>(inicial);
@@ -85,7 +87,7 @@ export default function FormularioPublicar({
   const pago = calcularPago(d);
   const riesgo = nivelRiesgo(d.respuestas);
   const aviso = requiereAviso(d);
-  const pagoAlto = pago.valorHora > 40000;
+  const pagoAlto = umbralPagoHora > 0 && pago.valorHora > umbralPagoHora;
   const nombreCategoria = categorias.flatMap((c) => c.subcategorias.map((s) => ({ ...s, padre: c.nombre })))
     .find((s) => String(s.id) === d.categoria);
   const nombreComuna = comunas.find((c) => String(c.id) === d.comuna)?.nombre ?? "";

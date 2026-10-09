@@ -53,8 +53,26 @@ select alike((select followup_reason from job_posts where id = current_setting('
 select is((select followup_status from job_posts where id = current_setting('t.alto')::uuid), 'pendiente', 'Seguimiento pendiente');
 select is((select followup_reason from job_posts where id = current_setting('t.bajo')::uuid), null, 'Sin indicios no queda marcado');
 
+select is(publish_job(pg_temp.borrador('Cajero turno gala', 'Atención de caja en gala benéfica.', 'por_obra', 900000, null, null, null, null, null))::text,
+  'publicada', 'Por defecto el monto del pago no lleva a revisión');
+select throws_ok($$ select pg_temp.borrador('Cajero sin pago', 'Atención de caja en evento solidario.', 'por_obra', 0, null, null, null, null, null) $$,
+  '23514', null, 'No se permite pago de $0');
+reset role;
+update platform_settings set value = '20000' where key = 'max_hourly_review_clp';  -- se activa para las pruebas siguientes
+set local role authenticated;
 select is(publish_job(pg_temp.borrador('Cajero turno evento', 'Atención de caja en evento corporativo.', 'por_obra', 900000, null, null, null, null, null))::text,
   'en_revision', 'Pago por hora inusualmente alto pasa a revisión');
+
+-- Umbral configurable: 5 horas a $19.000/h no se revisa; a $21.000/h sí.
+select is(publish_job(pg_temp.borrador('Cajero apoyo cierre', 'Atención de caja en el cierre de temporada.', 'por_obra', 95000, null, null, null, null, null))::text,
+  'publicada', 'Bajo $20.000 por hora se publica');
+select is(publish_job(pg_temp.borrador('Cajero apoyo apertura', 'Atención de caja en la apertura de temporada.', 'por_obra', 105000, null, null, null, null, null))::text,
+  'en_revision', 'Sobre $20.000 por hora pasa a revisión');
+reset role;
+update platform_settings set value = '25000' where key = 'max_hourly_review_clp';
+set local role authenticated;
+select is(publish_job(pg_temp.borrador('Cajero apoyo feriado', 'Atención de caja en feriado largo.', 'por_obra', 105000, null, null, null, null, null))::text,
+  'publicada', 'El umbral se puede ajustar en platform_settings');
 
 -- ============================================================ Normas de contenido
 select throws_like($$ select publish_job(pg_temp.borrador('Cajero para tienda', 'Interesados escribir a rrhh@tienda.cl con su CV.', 'plazo_fijo', 30000, null,null,null,null,null)) $$, '%datos de contacto%', 'Rechaza correos');

@@ -92,7 +92,10 @@ select set_config('t.job2', id::text, true) from x;
 insert into job_post_private (job_id, address_line) values (current_setting('t.job2')::uuid, 'Huérfanos 1000');
 select throws_like($$ select publish_job(current_setting('t.job2')::uuid) $$, '%advertencia%', 'Riesgo alto exige confirmar advertencia');
 update job_posts set labor_warning_ack_at = now() where id = current_setting('t.job2')::uuid;
-select is(publish_job(current_setting('t.job2')::uuid)::text, 'en_revision', 'Pago por hora inusualmente alto pasa a revisión previa');
+reset role;
+update platform_settings set value = '20000' where key = 'max_hourly_review_clp';  -- se activa solo para esta prueba
+set local role authenticated;
+select is(publish_job(current_setting('t.job2')::uuid)::text, 'en_revision', 'Con tope activado, pago por hora muy alto pasa a revisión');
 
 -- ============================================================ Trabajadores
 set local request.jwt.claim.sub = 'a0000000-0000-0000-0000-000000000001';

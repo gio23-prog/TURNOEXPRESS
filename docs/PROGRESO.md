@@ -76,3 +76,8 @@ Proyecto Next.js, identidad visual, registro/ingreso con selección de rol, perf
 - Trabajador ve aviso de derechos en turnos con boleta de honorarios.
 - /legal/terminos y /legal/privacidad: textos propios (no copiados) para Chile, enlazados en el pie y en el registro. Datos del operador en lib/operador.ts (COMPLETAR).
 - 136 pruebas de base de datos pasando.
+
+## Sin revisión por monto ✅ (09/10/2026)
+- Migración 13: la revisión por "pago por hora alto" queda desactivada (platform_settings.max_hourly_review_clp = 0) y es configurable.
+- El pago sigue debiendo ser mayor a $0 (no se permite trabajo sin pago).
+- 141 pruebas de base de datos pasando.

@@ -23,7 +23,7 @@ const PASOS = ["Qué", "Cuándo y dónde", "Pago y condiciones", "Preguntas", "C
 
 const inicial: Borrador = {
   categoria: "", titulo: "", descripcion: "", cupos: "1",
-  fecha: "", inicio: "09:00", termino: "17:00", region: "", comuna: "", direccion: "", urgente: false,
+  fecha: "", inicio: "09:00", termino: "17:00", region: "", comuna: "", sector: "", urgente: false,
   modoPago: "total", monto: "", pausas: "", vestimenta: "", alimentacion: false, transporte: false,
   preguntas: [], respuestas: {}, contrato: "", aceptaCondiciones: false,
 };
@@ -119,14 +119,14 @@ export default function FormularioPublicar({
     return (
       <main className="mx-auto max-w-xl p-6">
         <h1 className="text-2xl font-semibold text-stone-900">
-          {msg.estado === "en_revision" ? "Turno en revisión" : "Turno publicado"}
+          {msg.estado === "en_revision" ? "Oferta en revisión" : "Oferta publicada"}
         </h1>
         <p className="mt-2 text-stone-700">{msg.texto}</p>
         <Link href="/empresa/publicaciones" className="mt-6 mr-4 inline-block rounded-lg bg-teal-700 px-4 py-2.5 font-semibold text-white hover:bg-teal-800">
-          Ver mis turnos
+          Ver mis ofertas
         </Link>
         <Link href="/empresa/publicar" onClick={() => { setMsg(null); setD(inicial); setPaso(0); }} className="mt-6 inline-block font-medium text-teal-800 underline">
-          Publicar otro turno
+          Publicar otra oferta
         </Link>
       </main>
     );
@@ -135,7 +135,7 @@ export default function FormularioPublicar({
   return (
     <main className="mx-auto max-w-xl bg-stone-50 p-4 pb-24 sm:p-6">
       <header className="mb-6">
-        <h1 className="text-2xl font-semibold text-stone-900">Publicar un turno</h1>
+        <h1 className="text-2xl font-semibold text-stone-900">Publicar una oferta</h1>
         <p className="mt-1 text-sm text-stone-600">Paso {paso + 1} de {PASOS.length}: {PASOS[paso]}</p>
         <div className="mt-3 h-1.5 rounded-full bg-stone-200" aria-hidden>
           <div className="h-full rounded-full bg-teal-700 transition-all" style={{ width: `${((paso + 1) / PASOS.length) * 100}%` }} />
@@ -162,7 +162,7 @@ export default function FormularioPublicar({
               </select>
             </Campo>
             <Campo label="Título" error={err.titulo}>
-              <input className={input} value={d.titulo} maxLength={80} onChange={(e) => set("titulo", e.target.value)} placeholder="Ej: Garzón para turno de almuerzo" />
+              <input className={input} value={d.titulo} maxLength={80} onChange={(e) => set("titulo", e.target.value)} placeholder="Ej: Garzón para el almuerzo del sábado" />
             </Campo>
             <Campo label="Descripción" error={err.descripcion}>
               <textarea className={input} rows={4} value={d.descripcion} maxLength={1000} onChange={(e) => set("descripcion", e.target.value)} placeholder="Qué tareas debe hacer y qué experiencia necesita" />
@@ -205,8 +205,9 @@ export default function FormularioPublicar({
                 {comunasRegion.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
               </select>
             </Campo>
-            <Campo label="Dirección exacta (solo la verá quien sea contratado)" error={err.direccion}>
-              <input className={input} value={d.direccion} onChange={(e) => set("direccion", e.target.value)} />
+            <Campo label="Sector o referencia (opcional, es público)" error={err.sector}>
+              <input className={input} maxLength={160} value={d.sector} placeholder="Ej: cerca del metro Los Leones"
+                onChange={(e) => set("sector", e.target.value)} />
             </Campo>
             <label className="flex items-center gap-2 text-sm text-stone-700">
               <input type="checkbox" checked={d.urgente} onChange={(e) => set("urgente", e.target.checked)} />
@@ -254,7 +255,7 @@ export default function FormularioPublicar({
         {paso === 4 && (
           <>
             <fieldset>
-              <legend className="mb-2 text-sm font-medium text-stone-700">¿Cómo vas a contratar este turno?</legend>
+              <legend className="mb-2 text-sm font-medium text-stone-700">¿Cómo vas a contratar a la persona?</legend>
               <div className="grid gap-2 sm:grid-cols-2">
                 {TIPOS_CONTRATO.map((t) => (
                   <label key={t.id}
@@ -275,7 +276,7 @@ export default function FormularioPublicar({
             {d.contrato && d.contrato !== "honorarios" && (
               <p className="rounded-lg border border-teal-200 bg-teal-50 p-3 text-sm text-teal-900">
                 Con contrato de trabajo tu empresa asume las obligaciones laborales: contrato escrito, cotizaciones
-                previsionales y pago de la remuneración acordada. El turno se publica sin revisión adicional.
+                previsionales y pago de la remuneración acordada. La oferta se publica sin revisión adicional.
               </p>
             )}
 
@@ -296,10 +297,10 @@ export default function FormularioPublicar({
 
             {riesgo !== "bajo" && (
               <div role="status" className="rounded-lg border border-teal-300 bg-teal-50 p-4 text-sm text-teal-950">
-                <p className="font-semibold">Este turno se parece a un trabajo bajo tu dirección</p>
+                <p className="font-semibold">Esta oferta se parece a un trabajo bajo tu dirección</p>
                 <p className="mt-1">
-                  Cuando hay supervisión, horario fijo o instrucciones durante el turno, lo que corresponde es un contrato de
-                  trabajo. Con contrato el turno <strong>se publica de inmediato, sin revisión</strong>.
+                  Cuando hay supervisión, horario fijo o instrucciones durante la jornada, lo que corresponde es un contrato de
+                  trabajo. Con contrato la oferta <strong>se publica de inmediato, sin revisión</strong>.
                 </p>
                 <div className="mt-3 flex flex-col gap-2 sm:flex-row">
                   {(["por_obra", "plazo_fijo"] as const).map((c) => (
@@ -311,7 +312,7 @@ export default function FormularioPublicar({
                   ))}
                 </div>
                 {riesgo === "alto" && (
-                  <p className="mt-3 text-teal-900">Si mantienes la boleta de honorarios, el turno se publica igual, lo revisaremos después y la persona verá un aviso sobre sus derechos.</p>
+                  <p className="mt-3 text-teal-900">Si mantienes la boleta de honorarios, la oferta se publica igual, la revisaremos después y los postulantes verán un aviso sobre sus derechos.</p>
                 )}
               </div>
             )}
@@ -345,7 +346,7 @@ export default function FormularioPublicar({
             {aviso && (
               <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
                 <span className="font-medium">
-                  {riesgo === "alto" ? "Este turno tiene varios indicios de relación laboral." : "Este turno tiene algunos indicios de relación laboral."}
+                  {riesgo === "alto" ? "Esta oferta tiene varios indicios de relación laboral." : "Esta oferta tiene algunos indicios de relación laboral."}
                 </span>{" "}
                 Se publicará igual{riesgo === "alto" ? " y lo revisaremos después" : ""}. Si en la práctica hay subordinación y
                 dependencia, corresponde un contrato de trabajo y no una boleta de honorarios.
@@ -353,7 +354,7 @@ export default function FormularioPublicar({
             )}
             <section aria-labelledby="titulo-condiciones" className="rounded-lg border border-stone-300 bg-white p-4 text-sm text-stone-800">
               <h2 id="titulo-condiciones" className="text-base font-semibold text-stone-900">Condiciones del empleador</h2>
-              <p className="mt-1 text-stone-600">Al publicar este turno, me comprometo a:</p>
+              <p className="mt-1 text-stone-600">Al publicar esta oferta, me comprometo a:</p>
               <ul className="mt-2 list-disc space-y-1 pl-5">
                 {condicionesPara(d.contrato, aviso).map((c) => <li key={c}>{c}</li>)}
               </ul>
@@ -367,7 +368,7 @@ export default function FormularioPublicar({
             </section>
             {pagoAlto && (
               <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-                El pago por hora ({clp(pago.valorHora)}) es inusualmente alto. Revisaremos el turno antes de publicarlo
+                El pago por hora ({clp(pago.valorHora)}) es inusualmente alto. Revisaremos la oferta antes de publicarla
                 para proteger a los trabajadores de ofertas engañosas. Si es un error, vuelve al paso 3 y corrige el monto.
               </p>
             )}
@@ -389,7 +390,7 @@ export default function FormularioPublicar({
             </button>
           ) : (
             <button type="button" onClick={publicar} disabled={pendiente} className="flex-1 rounded-lg bg-teal-700 px-4 py-3 font-medium text-white hover:bg-teal-800 disabled:opacity-60">
-              {pendiente ? "Publicando..." : "Publicar turno"}
+              {pendiente ? "Publicando..." : "Publicar oferta"}
             </button>
           )}
         </div>

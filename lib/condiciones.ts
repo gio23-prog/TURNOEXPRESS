@@ -1,16 +1,16 @@
-// Condiciones que el empleador acepta al publicar cada turno.
+// Condiciones que el empleador acepta al publicar cada oferta.
 // BORRADOR: debe revisarlo un abogado antes del lanzamiento.
-// Si cambias el texto, sube CONDICIONES_VERSION: cada turno guarda la versión que se aceptó.
+// Si cambias el texto, sube CONDICIONES_VERSION: cada oferta guarda la versión que se aceptó.
 
 import type { TipoContrato } from "@/lib/reglas-publicacion";
 
-export const CONDICIONES_VERSION = "2026-10-09.2";
+export const CONDICIONES_VERSION = "2026-10-09.3";
 
 const COMUNES = [
-  "La información del turno es verdadera y completa: tareas, horario, lugar, pago y condiciones.",
-  "Pagaré el monto ofrecido en la forma y el plazo acordados con la persona.",
+  "La información de la oferta es verdadera y completa: tareas, horario, lugar, pago y condiciones.",
+  "Si contrato a alguien por esta oferta, le pagaré el monto ofrecido en la forma y el plazo acordados.",
   "Cumpliré las normas de higiene y seguridad, y entregaré los elementos de protección que el trabajo requiera.",
-  "No discriminaré a postulantes ni trabajadores, y usaré sus datos personales solo para este turno.",
+  "No discriminaré a los postulantes y usaré sus datos de contacto y currículum solo para el proceso de selección de esta oferta.",
 ];
 
 const CONTRATO_TRABAJO = [
@@ -27,7 +27,7 @@ const HONORARIOS = [
 ];
 
 const CON_INDICIOS =
-  "Fui informado de que este turno tiene indicios de relación laboral y de que, si en la práctica hay subordinación " +
+  "Fui informado de que esta oferta tiene indicios de relación laboral y de que, si en la práctica hay subordinación " +
   "y dependencia, corresponde un contrato de trabajo.";
 
 export function condicionesPara(contrato: TipoContrato | "", conIndicios = false) {
@@ -37,5 +37,5 @@ export function condicionesPara(contrato: TipoContrato | "", conIndicios = false
 }
 
 export const CIERRE_CONDICIONES =
-  "Entiendo que mi empresa es responsable de la relación con la persona que preste el servicio, que estas condiciones " +
+  "Entiendo que TurnoExpress solo difunde la oferta y no participa en la selección, la contratación ni el pago; que mi empresa es responsable de la relación con la persona que preste el servicio, que estas condiciones " +
   "no reemplazan los derechos que la ley le otorga, y que su incumplimiento puede llevar a la suspensión de mi cuenta.";

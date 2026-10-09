@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "TurnoExpress",
-  description: "Turnos por horas, por día y de fin de semana en todo Chile. Publica un turno en minutos o postula a turnos cerca de ti.",
+  description: "Ofertas de trabajo por horas, por día y de fin de semana en todo Chile. Publica una oferta en minutos o postula a las que están cerca de ti.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -28,7 +28,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <div className="flex-1">{children}</div>
         <footer className="border-t border-stone-200 bg-white pb-24 sm:pb-0">
           <div className="mx-auto flex max-w-5xl flex-col gap-2 px-4 py-6 text-sm text-stone-500 sm:flex-row sm:items-center sm:justify-between">
-            <span>TurnoExpress · Chile · 2026</span>
+            <span>
+              TurnoExpress · Chile · 2026
+              <span className="block text-xs">Portal de difusión de ofertas. No participamos en la selección ni en la contratación.</span>
+            </span>
             <nav aria-label="Legal" className="flex gap-4">
               <Link href="/legal/terminos" className="hover:text-stone-800 hover:underline">Términos y Condiciones</Link>
               <Link href="/legal/privacidad" className="hover:text-stone-800 hover:underline">Privacidad</Link>

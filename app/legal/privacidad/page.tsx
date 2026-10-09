@@ -17,9 +17,9 @@ export default function Privacidad() {
       resumen={
         <p>
           <strong>En resumen:</strong> usamos tus datos solo para que funcione la Plataforma: crear tu cuenta, publicar y
-          buscar turnos, postular y gestionar contrataciones. No vendemos tus datos, no mostramos publicidad y no usamos
-          cookies de seguimiento. Tu RUT, tu teléfono y la dirección exacta de un turno nunca son públicos. Puedes pedir
-          acceder, corregir o eliminar tus datos cuando quieras.
+          buscar ofertas y postular. Cuando postulas a una oferta, esa empresa recibe tu nombre, teléfono, correo y
+          currículum para contactarte. Tu RUT y tu dirección no los ve nadie. No vendemos tus datos, no mostramos
+          publicidad y no usamos cookies de seguimiento. Puedes pedir acceder, corregir o eliminar tus datos cuando quieras.
         </p>
       }
       secciones={[
@@ -36,21 +36,20 @@ export default function Privacidad() {
           id: "datos", titulo: "Qué datos recopilamos",
           contenido: (
             <>
-              <p><strong>Si eres Trabajador:</strong></p>
+              <p><strong>Si eres Postulante:</strong></p>
               <ul>
                 <li>Cuenta: nombre completo, correo y contraseña (que guardamos cifrada).</li>
-                <li>Datos personales: teléfono, RUT, comuna y dirección. No los mostramos a las empresas.</li>
+                <li>Datos personales: teléfono, RUT, comuna y dirección. El teléfono lo ve solo la empresa a la que postulas; el RUT y la dirección no los ve ninguna empresa.</li>
                 <li>Currículum: el archivo PDF que subas.</li>
-                <li>Perfil: nombre visible, descripción, experiencia, oficios, comunas donde trabajas, disponibilidad, tarifa, si emites boleta de honorarios y, si la subes, una foto.</li>
+                <li>Perfil: nombre visible, descripción, experiencia, rubros, comunas donde puedes trabajar y si emites boleta de honorarios.</li>
                 <li>Postulaciones: el currículum enviado, tu mensaje, la experiencia que destaques y tus respuestas a las preguntas de la empresa.</li>
-                <li>Contrataciones: condiciones aceptadas, mensajes con la empresa, evaluaciones y los datos de tus boletas (folio, fecha, monto y, si lo adjuntas, el archivo).</li>
               </ul>
               <p><strong>Si eres Empresa:</strong></p>
               <ul>
                 <li>Persona a cargo: nombre, cargo, teléfono y correo.</li>
                 <li>Empresa: nombre comercial, razón social, RUT, giro, sector, tamaño, dirección fiscal y descripción.</li>
                 <li>Representante legal: nombre y RUT.</li>
-                <li>Publicaciones, dirección de cada turno, preguntas a postulantes y condiciones aceptadas.</li>
+                <li>Ofertas publicadas, preguntas a postulantes, condiciones aceptadas y la fecha de término del mes gratis.</li>
               </ul>
               <p><strong>De todos los usuarios:</strong> registros técnicos de seguridad (fecha, hora, dirección IP y navegador) y los reportes que envíes.</p>
               <p>
@@ -68,7 +67,7 @@ export default function Privacidad() {
           id: "finalidades", titulo: "Para qué los usamos",
           contenido: (
             <ul>
-              <li><strong>Prestar el servicio</strong> que aceptaste en los Términos: cuentas, publicaciones, búsqueda, postulaciones, contrataciones, mensajes, evaluaciones y registro de documentos tributarios.</li>
+              <li><strong>Prestar el servicio</strong> que aceptaste en los Términos: cuentas, publicación y búsqueda de ofertas, postulaciones y envío de tu postulación a la empresa que elegiste.</li>
               <li><strong>Seguridad y prevención de fraude:</strong> verificar empresas, detectar publicaciones engañosas o discriminatorias y proteger las cuentas.</li>
               <li><strong>Cumplir obligaciones legales</strong> y responder requerimientos de autoridades.</li>
               <li><strong>Mejorar la Plataforma</strong> con estadísticas agregadas que no te identifican.</li>
@@ -82,9 +81,13 @@ export default function Privacidad() {
             <>
               <ul>
                 <li>
-                  <strong>Entre usuarios, solo lo necesario:</strong> cuando postulas a un turno, esa empresa ve tu perfil, tu
-                  currículum, tu mensaje y tus respuestas; no ve tu RUT, tu teléfono ni tu dirección. Los trabajadores ven el nombre comercial de la empresa, nunca su RUT ni el de su representante. La
-                  dirección exacta de un turno solo la ve quien queda contratado.
+                  <strong>Con la empresa a la que postulas:</strong> al postular a una oferta nos pides enviar a esa empresa tu
+                  nombre, teléfono, correo, perfil, currículum, mensaje y respuestas, para que pueda contactarte. No ve tu RUT
+                  ni tu dirección. Si retiras la postulación, deja de verlos en la Plataforma. Desde que recibe tus datos, la
+                  empresa es responsable de cómo los usa y solo puede usarlos para el proceso de selección de esa oferta.
+                </li>
+                <li>
+                  Los postulantes ven el nombre comercial de la empresa, nunca su RUT ni el de su representante.
                 </li>
                 <li>
                   <strong>Proveedores que nos prestan servicios</strong> (alojamiento, base de datos, autenticación y envío de
@@ -113,7 +116,7 @@ export default function Privacidad() {
               Mientras tu cuenta esté activa. Si la cierras, eliminamos o anonimizamos tus datos, salvo los registros que
               debamos conservar por obligaciones legales (por ejemplo, tributarias o laborales) o para defendernos de un
               reclamo, y solo por el plazo que corresponda. Las empresas pueden usar los datos de un postulante solo para el
-              turno al que postuló.
+              proceso de selección de la oferta a la que postuló.
             </p>
           ),
         },

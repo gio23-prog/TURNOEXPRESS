@@ -4,7 +4,6 @@ import { haceTiempo } from "@/lib/formato";
 const COLORES: Record<Tono, string> = {
   nuevo: "bg-sky-100 text-sky-900",
   proceso: "bg-teal-100 text-teal-900",
-  accion: "bg-amber-100 text-amber-900",
   exito: "bg-emerald-100 text-emerald-900",
   cerrado: "bg-stone-200 text-stone-700",
 };
@@ -48,10 +47,8 @@ export function LineaEstado({ estado, desde, actualizado }: { estado: string; de
         <PildoraEstado estado={estado} para="trabajador" />
         <p className="mt-2 text-sm text-stone-600">
           {estado === "rechazada"
-            ? "La empresa eligió a otra persona para este turno. ¡Sigue postulando!"
-            : estado === "retirada"
-              ? "Retiraste esta postulación."
-              : "Hay una incidencia reportada. El equipo de soporte la está revisando."}
+            ? "Esta vez la empresa siguió con otras personas o cerró la oferta. ¡Sigue postulando!"
+            : "Retiraste esta postulación. La empresa ya no ve tu contacto ni tu currículum."}
         </p>
         <p className="mt-1 text-xs text-stone-500">{haceTiempo(actualizado)}</p>
       </div>

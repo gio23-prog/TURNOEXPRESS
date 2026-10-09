@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import type { EmpresaInput } from "@/lib/schemas/empresa";
 import Encabezado, { obtenerSesion } from "@/app/componentes/encabezado";
 import FormularioEmpresa from "./formulario";
+import { mesGratis } from "@/lib/empresa";
+import { AvisoMesGratis } from "@/app/componentes/mes-gratis";
 
 // Solo se permite volver a rutas internas conocidas (evita redirecciones abiertas).
 const DESTINOS = ["/empresa/publicar"];
@@ -23,7 +25,7 @@ export default async function PerfilEmpresa({
         <Encabezado sesion={sesion} />
         <main className="mx-auto max-w-xl px-4 py-10">
           <h1 className="text-2xl font-bold">Solo para empresas</h1>
-          <p className="mt-2 text-stone-700">Tu cuenta es de trabajador.</p>
+          <p className="mt-2 text-stone-700">Tu cuenta es de postulante.</p>
           <Link href="/" className="mt-6 inline-block font-medium text-teal-800 underline">Volver al inicio</Link>
         </main>
       </div>
@@ -31,7 +33,7 @@ export default async function PerfilEmpresa({
   }
 
   const supabase = await createClient();
-  const [{ data: b }, { data: regs }, { data: coms }] = await Promise.all([
+  const [{ data: b }, { data: regs }, { data: coms }, plan] = await Promise.all([
     supabase
       .from("business_profiles")
       .select("trade_name, legal_name, rut, giro, business_type, sector, employees_range, shifts_per_month, description, comuna_id, fiscal_address, legal_rep_name, legal_rep_rut, contact_name, contact_position, contact_phone, contact_email")
@@ -39,6 +41,7 @@ export default async function PerfilEmpresa({
       .maybeSingle(),
     supabase.from("regions").select("id, name, sort_order").eq("active", true).order("sort_order"),
     supabase.from("comunas").select("id, name, region_id").eq("active", true).order("name"),
+    mesGratis(supabase, sesion.id),
   ]);
 
   const comunas = (coms ?? []).map((c) => ({ id: c.id as number, nombre: c.name as string, regionId: c.region_id as number }));
@@ -75,6 +78,7 @@ export default async function PerfilEmpresa({
       <main className="mx-auto max-w-3xl px-4 py-6">
         <h1 className="text-2xl font-bold tracking-tight">Datos de tu empresa</h1>
         <p className="mt-1 text-stone-600">Todos los campos son obligatorios salvo los marcados como opcionales.</p>
+        <div className="mt-4"><AvisoMesGratis plan={plan} /></div>
         <div className="mt-6">
           <FormularioEmpresa modo="perfil" inicial={inicial} regiones={regiones} comunas={comunas}
             completar={sp.completar === "1"} destino={destino} />

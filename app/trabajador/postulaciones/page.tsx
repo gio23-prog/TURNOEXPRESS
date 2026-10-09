@@ -42,7 +42,6 @@ export default async function MisPostulaciones({
 
   const enGrupo = (f: Fila, g: (typeof GRUPOS_TRABAJADOR)[number]) => !g.estados || (g.estados as readonly string[]).includes(f.status);
   const filas = todas.filter((f) => enGrupo(f, grupo));
-  const ofertas = todas.filter((f) => f.status === "oferta_enviada").length;
 
   return (
     <div className="min-h-full bg-stone-50 text-stone-900">
@@ -50,12 +49,6 @@ export default async function MisPostulaciones({
       <main className="mx-auto max-w-3xl px-4 py-6">
         <h1 className="text-2xl font-bold tracking-tight">Mis postulaciones</h1>
 
-        {ofertas > 0 && (
-          <Link href="/trabajador/postulaciones?ver=proceso"
-            className="mt-4 block rounded-xl border border-amber-300 bg-amber-50 p-4 font-medium text-amber-950 hover:border-amber-500">
-            {ofertas === 1 ? "Tienes 1 oferta esperando tu respuesta." : `Tienes ${ofertas} ofertas esperando tu respuesta.`} Ábrela para aceptar o rechazar.
-          </Link>
-        )}
 
         <nav aria-label="Filtrar postulaciones" className="mt-4 flex gap-2 overflow-x-auto pb-1">
           {GRUPOS_TRABAJADOR.map((g) => {
@@ -74,8 +67,8 @@ export default async function MisPostulaciones({
 
         {filas.length === 0 ? (
           <div className="mt-6 rounded-xl border border-dashed border-stone-300 bg-white p-8 text-center">
-            <p className="font-semibold">{todas.length === 0 ? "Aún no postulas a ningún turno" : "No hay postulaciones en esta pestaña"}</p>
-            <Link href="/trabajos" className="mt-3 inline-block font-medium text-teal-800 underline">Buscar turnos</Link>
+            <p className="font-semibold">{todas.length === 0 ? "Aún no postulas a ninguna oferta" : "No hay postulaciones en esta pestaña"}</p>
+            <Link href="/trabajos" className="mt-3 inline-block font-medium text-teal-800 underline">Buscar ofertas</Link>
           </div>
         ) : (
           <ul className="mt-4 space-y-3">

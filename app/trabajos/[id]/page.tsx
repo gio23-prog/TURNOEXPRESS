@@ -6,20 +6,16 @@ import Encabezado, { obtenerSesion } from "@/app/componentes/encabezado";
 import { nombreContrato } from "@/lib/reglas-publicacion";
 import { faltantesTrabajador } from "@/lib/trabajador";
 import { BotonRetirar, FormularioPostular, type PreguntaPublica } from "./postular";
-import { PanelOferta } from "./oferta";
 import { LineaEstado } from "@/app/componentes/estado";
 
 const ESTADO_PUBLICACION: Record<string, string> = {
-  borrador: "Borrador: aún no está publicado.",
-  en_revision: "En revisión: nuestro equipo debe aprobarlo antes de mostrarlo.",
-  cubierta: "Este turno ya fue cubierto.",
-  en_curso: "Este turno está en curso.",
-  finalizada: "Este turno ya terminó.",
-  cancelada: "Este turno fue cancelado.",
-  vencida: "Este turno venció sin cubrirse.",
+  borrador: "Borrador: aún no está publicada.",
+  en_revision: "En revisión: nuestro equipo debe aprobarla antes de mostrarla.",
+  cancelada: "La empresa cerró esta oferta.",
+  vencida: "Esta oferta ya venció.",
 };
 
-export default async function DetalleTurno({ params }: { params: Promise<{ id: string }> }) {
+export default async function DetalleOferta({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   if (!esUUID(id)) notFound();
 
@@ -30,7 +26,7 @@ export default async function DetalleTurno({ params }: { params: Promise<{ id: s
       <div className="min-h-full bg-stone-50 text-stone-900">
         <Encabezado sesion={null} />
         <main className="mx-auto max-w-xl px-4 py-10">
-          <h1 className="text-2xl font-bold">Ingresa para ver este turno</h1>
+          <h1 className="text-2xl font-bold">Ingresa para ver esta oferta</h1>
           <p className="mt-2 text-stone-600">Para ver el detalle completo y postular necesitas una cuenta. Es gratis.</p>
           <div className="mt-6 flex gap-3">
             <Link href="/ingresar" className="rounded-lg bg-teal-700 px-5 py-3 font-semibold text-white hover:bg-teal-800">Ingresar</Link>
@@ -54,13 +50,12 @@ export default async function DetalleTurno({ params }: { params: Promise<{ id: s
     .maybeSingle<Record<string, any>>(); // eslint-disable-line @typescript-eslint/no-explicit-any
   if (!t) notFound();
 
-  const [catRes, negocioRes, postRes, cruceRes, pregRes, faltan] = await Promise.all([
+  const [catRes, negocioRes, postRes, pregRes, faltan] = await Promise.all([
     supabase.from("categories").select("name, parent_id").eq("id", t.category_id).single(),
-    supabase.from("v_public_businesses").select("trade_name, verification_status, rating_avg, rating_count").eq("user_id", t.business_id).maybeSingle(),
+    supabase.from("v_public_businesses").select("trade_name, verification_status").eq("user_id", t.business_id).maybeSingle(),
     sesion.role === "trabajador"
       ? supabase.from("applications").select("id, status, created_at, updated_at").eq("job_id", id).eq("worker_id", sesion.id).maybeSingle()
       : Promise.resolve({ data: null }),
-    sesion.role === "trabajador" ? supabase.rpc("my_overlapping_bookings", { p_job: id }) : Promise.resolve({ data: [] }),
     supabase.from("job_questions").select("id, position, prompt, kind, options, required").eq("job_id", id).order("position"),
     sesion.role === "trabajador" ? faltantesTrabajador(supabase, sesion.id) : Promise.resolve([] as string[]),
   ]);
@@ -72,21 +67,6 @@ export default async function DetalleTurno({ params }: { params: Promise<{ id: s
   const negocio = negocioRes.data;
   const postulacion = postRes.data as { id: string; status: string; created_at: string; updated_at: string } | null;
 
-  // Oferta abierta (si la hay) y, con el turno confirmado, la dirección exacta.
-  const [ofertaRes, direccionRes] = await Promise.all([
-    postulacion?.status === "oferta_enviada"
-      ? supabase.from("offers").select("id, starts_at, ends_at, pay_type, pay_amount_clp, message, expires_at")
-          .eq("application_id", postulacion.id).eq("status", "enviada").maybeSingle()
-      : Promise.resolve({ data: null }),
-    postulacion && ["aceptada", "finalizada"].includes(postulacion.status)
-      ? supabase.from("job_post_private").select("address_line, access_notes").eq("job_id", id).maybeSingle()
-      : Promise.resolve({ data: null }),
-  ]);
-  const oferta = ofertaRes.data as {
-    id: string; starts_at: string; ends_at: string; pay_type: string; pay_amount_clp: number; message: string | null; expires_at: string;
-  } | null;
-  const direccion = direccionRes.data as { address_line: string; access_notes: string | null } | null;
-  const cruces = (cruceRes.data as unknown[] | null)?.length ?? 0;
   const comuna = t.comunas?.name as string | undefined;
   const region = t.comunas?.regions?.name as string | undefined;
   const esDueno = sesion.id === t.business_id;
@@ -109,7 +89,7 @@ export default async function DetalleTurno({ params }: { params: Promise<{ id: s
     <div className="min-h-full bg-stone-50 text-stone-900">
       <Encabezado sesion={sesion} />
       <main className="mx-auto max-w-5xl px-4 py-6">
-        <Link href="/trabajos" className="text-sm font-medium text-teal-800 underline">← Volver a los turnos</Link>
+        <Link href="/trabajos" className="text-sm font-medium text-teal-800 underline">← Volver a las ofertas</Link>
 
         <div className="mt-4 grid gap-6 lg:grid-cols-[1fr_22rem]">
           <article className="min-w-0 space-y-6">
@@ -124,7 +104,6 @@ export default async function DetalleTurno({ params }: { params: Promise<{ id: s
               <p className="mt-1 text-stone-600">
                 {negocio?.trade_name ?? "Empresa"}
                 {negocio?.verification_status === "verificado" && <span className="font-medium text-teal-800"> · Verificado</span>}
-                {negocio?.rating_count ? <> · {negocio.rating_avg} ★ ({negocio.rating_count})</> : null}
               </p>
             </header>
 
@@ -138,7 +117,7 @@ export default async function DetalleTurno({ params }: { params: Promise<{ id: s
               <div><dt className="text-stone-500">Duración</dt><dd className="font-semibold">{duracion(t.duration_minutes)}</dd></div>
               <div><dt className="text-stone-500">Pago total</dt><dd className="font-semibold">{clp(t.estimated_total_clp)}</dd></div>
               <div><dt className="text-stone-500">Por hora</dt><dd className="font-semibold">{clp(t.hourly_equivalent_clp)}</dd></div>
-              <div><dt className="text-stone-500">Cupos</dt><dd className="font-semibold">{t.slots}</dd></div>
+              <div><dt className="text-stone-500">Vacantes</dt><dd className="font-semibold">{t.slots}</dd></div>
               <div className="col-span-2 sm:col-span-3">
                 <dt className="text-stone-500">Contratación</dt>
                 <dd className="font-semibold">{nombreContrato(t.contract_type)}</dd>
@@ -150,19 +129,19 @@ export default async function DetalleTurno({ params }: { params: Promise<{ id: s
                   {t.approx_location && <span className="font-normal text-stone-600"> · {t.approx_location}</span>}
                 </dd>
                 {t.modality !== "remoto" && (
-                  <dd className="mt-1 text-xs text-stone-500">La dirección exacta se comparte solo con quien sea contratado.</dd>
+                  <dd className="mt-1 text-xs text-stone-500">La empresa te indicará la dirección exacta si te contacta.</dd>
                 )}
               </div>
             </dl>
 
             {t.contract_type === "honorarios" && (
               <aside className="rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-950">
-                <p className="font-semibold">Turno con boleta de honorarios: conoce tus derechos</p>
+                <p className="font-semibold">Oferta con boleta de honorarios: conoce tus derechos</p>
                 <p className="mt-1">
                   Con boleta de honorarios prestas un servicio independiente: organizas tu trabajo y emites la boleta en el SII.
-                  Si en la práctica te supervisan, te fijan horario y te dan instrucciones durante todo el turno, podría
-                  corresponder un contrato de trabajo, con cotizaciones y demás derechos laborales. Puedes reportarlo a
-                  TurnoExpress o consultar en la Dirección del Trabajo.
+                  Si en la práctica te supervisan, te fijan horario y te dan instrucciones durante toda la jornada, podría
+                  corresponder un contrato de trabajo, con cotizaciones y demás derechos laborales. Puedes consultar en la
+                  Dirección del Trabajo o reportar la oferta a TurnoExpress.
                 </p>
               </aside>
             )}
@@ -191,29 +170,16 @@ export default async function DetalleTurno({ params }: { params: Promise<{ id: s
             <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
               {esDueno ? (
                 <>
-                  <p className="font-semibold">Este turno es tuyo</p>
+                  <p className="font-semibold">Esta oferta es tuya</p>
                   <Link href={`/empresa/publicaciones/${id}`} className="mt-2 inline-block text-sm font-medium text-teal-800 underline">
                     Ver postulantes
                   </Link>
                 </>
               ) : sesion.role === "empresa" ? (
-                <p className="text-sm text-stone-600">Estás viendo este turno con una cuenta de empresa. Para postular necesitas una cuenta de trabajador.</p>
+                <p className="text-sm text-stone-600">Estás viendo esta oferta con una cuenta de empresa. Para postular necesitas una cuenta de postulante.</p>
               ) : postulacion ? (
                 <div className="space-y-4">
                   <h2 className="text-lg font-bold">Tu estado en la postulación</h2>
-                  {oferta && (
-                    <PanelOferta jobId={id} offerId={oferta.id} mensaje={oferta.message} hayCruce={cruces > 0}
-                      vence={`${fecha(oferta.expires_at)} a las ${hora(oferta.expires_at)}`}
-                      resumen={`${fecha(oferta.starts_at)}, de ${hora(oferta.starts_at)} a ${hora(oferta.ends_at)}. Pago: ${
-                        oferta.pay_type === "total" ? `${clp(oferta.pay_amount_clp)} en total` : `${clp(oferta.pay_amount_clp)} por hora`}.`} />
-                  )}
-                  {direccion && (
-                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
-                      <p className="font-semibold">Dirección del turno</p>
-                      <p className="mt-1">{direccion.address_line}{comuna && `, ${comuna}`}</p>
-                      {direccion.access_notes && <p className="mt-1 text-emerald-900">{direccion.access_notes}</p>}
-                    </div>
-                  )}
                   <LineaEstado estado={postulacion.status} desde={postulacion.created_at} actualizado={postulacion.updated_at} />
                   {["pendiente", "en_revision", "preseleccionada"].includes(postulacion.status) && (
                     <BotonRetirar jobId={id} applicationId={postulacion.id} />
@@ -224,15 +190,10 @@ export default async function DetalleTurno({ params }: { params: Promise<{ id: s
                 </div>
               ) : abierto ? (
                 <>
-                  <h2 className="mb-3 text-lg font-bold">Postular a este turno</h2>
-                  {cruces > 0 && (
-                    <p className="mb-3 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-                      Ya tienes un turno confirmado que se cruza con este horario. Puedes postular, pero no podrás aceptar ambos.
-                    </p>
-                  )}
+                  <h2 className="mb-3 text-lg font-bold">Postular a esta oferta</h2>
                   {faltan.length ? (
                     <div className="space-y-3 text-sm">
-                      <p>Para postular a este turno primero completa tu {faltan.join(" y tu ")}. La empresa recibirá tu currículum con la postulación.</p>
+                      <p>Para postular a esta oferta primero completa tu {faltan.join(" y tu ")}. La empresa recibirá tu currículum con la postulación.</p>
                       <Link href={`/trabajador/perfil?paso=${faltan[0] === "currículum" ? "cv" : "datos"}`}
                         className="block rounded-lg bg-teal-700 px-4 py-3 text-center font-semibold text-white hover:bg-teal-800">
                         Completar mi perfil
@@ -243,11 +204,12 @@ export default async function DetalleTurno({ params }: { params: Promise<{ id: s
                   )}
                 </>
               ) : (
-                <p className="text-sm text-stone-600">Este turno ya no recibe postulaciones.</p>
+                <p className="text-sm text-stone-600">Esta oferta ya no recibe postulaciones.</p>
               )}
             </div>
             <p className="mt-3 px-1 text-xs text-stone-500">
-              Postular es gratis. Antes de confirmar verás todas las condiciones del servicio.
+              Postular es gratis. Si la empresa se interesa, te contactará directamente por teléfono o correo.
+              TurnoExpress no participa en la contratación.
             </p>
           </aside>
         </div>

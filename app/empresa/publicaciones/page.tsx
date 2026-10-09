@@ -4,15 +4,17 @@ import { createClient } from "@/lib/supabase/server";
 import { diaRelativo, hora } from "@/lib/formato";
 import { ESTADO_PUBLICACION } from "@/lib/estados";
 import Encabezado, { obtenerSesion } from "@/app/componentes/encabezado";
+import { mesGratis } from "@/lib/empresa";
+import { AvisoMesGratis } from "@/app/componentes/mes-gratis";
 
 type Turno = {
   id: string; title: string; status: string; starts_at: string; ends_at: string; slots: number;
   comunas: { name: string } | null; applications: { status: string }[];
 };
 
-const ACTIVOS = ["publicada", "con_postulaciones", "en_revision", "cubierta", "en_curso", "borrador"];
+const ACTIVOS = ["publicada", "con_postulaciones", "en_revision", "borrador"];
 
-export default async function MisTurnos({
+export default async function MisOfertas({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -23,6 +25,7 @@ export default async function MisTurnos({
   const verPasados = (await searchParams).ver === "pasados";
 
   const supabase = await createClient();
+  const plan = await mesGratis(supabase, sesion.id);
   const { data } = await supabase
     .from("job_posts")
     .select("id, title, status, starts_at, ends_at, slots, comunas(name), applications(status)")
@@ -36,14 +39,16 @@ export default async function MisTurnos({
       <Encabezado sesion={sesion} />
       <main className="mx-auto max-w-3xl px-4 py-6">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-2xl font-bold tracking-tight">Mis turnos</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Mis ofertas</h1>
           <Link href="/empresa/publicar" className="rounded-lg bg-teal-700 px-4 py-2.5 font-semibold text-white hover:bg-teal-800">
-            Publicar turno
+            Publicar oferta
           </Link>
         </div>
 
-        <nav aria-label="Filtrar turnos" className="mt-4 flex gap-2">
-          {[["", "Activos"], ["pasados", "Pasados"]].map(([v, t]) => {
+        <div className="mt-4"><AvisoMesGratis plan={plan} /></div>
+
+        <nav aria-label="Filtrar ofertas" className="mt-4 flex gap-2">
+          {[["", "Activas"], ["pasados", "Cerradas y vencidas"]].map(([v, t]) => {
             const activo = (v === "pasados") === verPasados;
             return (
               <Link key={t} href={v ? `/empresa/publicaciones?ver=${v}` : "/empresa/publicaciones"} aria-current={activo ? "page" : undefined}
@@ -57,8 +62,8 @@ export default async function MisTurnos({
 
         {turnos.length === 0 ? (
           <div className="mt-6 rounded-xl border border-dashed border-stone-300 bg-white p-8 text-center">
-            <p className="font-semibold">{verPasados ? "Aún no tienes turnos pasados" : "No tienes turnos activos"}</p>
-            {!verPasados && <Link href="/empresa/publicar" className="mt-3 inline-block font-medium text-teal-800 underline">Publica tu primer turno</Link>}
+            <p className="font-semibold">{verPasados ? "Aún no tienes ofertas cerradas" : "No tienes ofertas activas"}</p>
+            {!verPasados && <Link href="/empresa/publicar" className="mt-3 inline-block font-medium text-teal-800 underline">Publica tu primera oferta</Link>}
           </div>
         ) : (
           <ul className="mt-4 space-y-3">
@@ -66,7 +71,7 @@ export default async function MisTurnos({
               const apps = t.applications ?? [];
               const n = (estados: string[]) => apps.filter((a) => estados.includes(a.status)).length;
               const nuevos = n(["pendiente"]);
-              const confirmados = n(["aceptada", "finalizada"]);
+              const preseleccionados = n(["preseleccionada"]);
               return (
                 <li key={t.id}>
                   <Link href={`/empresa/publicaciones/${t.id}`}
@@ -85,15 +90,15 @@ export default async function MisTurnos({
                     <dl className="mt-3 grid grid-cols-3 gap-2 border-t border-stone-100 pt-3 text-center text-sm tabular-nums">
                       <div>
                         <dt className="text-stone-500">Postulantes</dt>
-                        <dd className="text-lg font-bold">{n(["pendiente", "en_revision", "preseleccionada", "oferta_enviada", "aceptada", "finalizada"])}</dd>
+                        <dd className="text-lg font-bold">{n(["pendiente", "en_revision", "preseleccionada", "rechazada"])}</dd>
                       </div>
                       <div>
                         <dt className="text-stone-500">Nuevos</dt>
                         <dd className={`text-lg font-bold ${nuevos ? "text-sky-700" : ""}`}>{nuevos}</dd>
                       </div>
                       <div>
-                        <dt className="text-stone-500">Confirmados</dt>
-                        <dd className="text-lg font-bold">{confirmados} / {t.slots}</dd>
+                        <dt className="text-stone-500">Preseleccionados</dt>
+                        <dd className="text-lg font-bold">{preseleccionados}</dd>
                       </div>
                     </dl>
                   </Link>

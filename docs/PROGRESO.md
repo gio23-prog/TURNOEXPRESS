@@ -105,3 +105,13 @@ Proyecto Next.js, identidad visual, registro/ingreso con selección de rol, perf
 - Migración 16: elimina worker_suspensions, report_no_show, descargo, reactivación e is_suspended; respond_offer vuelve a su firma original (sin condición de asistencia).
 - Se mantienen datos personales, CV y su envío con cada postulación. Términos y Privacidad actualizados.
 - 143 pruebas de base de datos pasando.
+
+## Portal de difusión de ofertas ✅ (09/10/2026)
+- Decisión: solo se difunden ofertas y se reciben postulaciones; la empresa contacta directamente a los postulantes. TurnoExpress no participa en la selección ni en la contratación.
+- Migración 17: elimina ofertas formales, contrataciones, cambios, mensajes, evaluaciones y boletas (tablas, funciones y tipos). Estados de postulación: pendiente, en_revision (CV visto), preseleccionada, rechazada, retirada. Estados de oferta: borrador, publicada, en_revision, con_postulaciones, cancelada (cerrada), vencida.
+- job_applicant_contacts(): la empresa ve nombre, teléfono y correo de quien postula (no de quien retiró la postulación). El CV de una postulación retirada tampoco queda disponible.
+- Ya no se pide dirección exacta; campo opcional y público "Sector o referencia".
+- La empresa puede cerrar una oferta (avisa a quienes seguían en proceso).
+- Mes gratis: business_profiles.trial_ends_at (registro + 1 mes), visible en Mi empresa y Mis ofertas. Aún no hay cobros.
+- Textos: "oferta" en toda la web; Términos y Privacidad reescritos como portal de difusión; pie con aviso.
+- 131 pruebas de base de datos pasando.

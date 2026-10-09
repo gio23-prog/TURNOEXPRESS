@@ -57,7 +57,7 @@ export function FormDatos({
     <form onSubmit={enviar} noValidate className={tarjeta}>
       <div>
         <h2 className="text-lg font-bold">Datos personales</h2>
-        <p className="text-sm text-stone-600">Son privados. Las empresas solo ven tu perfil y tu currículum cuando postulas a un turno.</p>
+        <p className="text-sm text-stone-600">Cuando postulas a una oferta, esa empresa ve tu nombre, teléfono, correo, perfil y currículum para contactarte. Tu RUT y tu dirección no los ve nadie.</p>
       </div>
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="sm:col-span-2">
@@ -139,7 +139,7 @@ export function FormCV({ actual, siguiente }: { actual: { subido: string | null 
       <div>
         <h2 className="text-lg font-bold">Currículum</h2>
         <p className="text-sm text-stone-600">
-          Se envía a la empresa cada vez que postulas a un turno. Solo esa empresa puede verlo.
+          Se envía a la empresa cada vez que postulas a una oferta. Solo esa empresa puede verlo.
         </p>
       </div>
 
@@ -213,7 +213,7 @@ export function FormPerfil({
     <form onSubmit={enviar} noValidate className={tarjeta}>
       <div>
         <h2 className="text-lg font-bold">Perfil</h2>
-        <p className="text-sm text-stone-600">Es lo que ven las empresas cuando postulas a uno de sus turnos.</p>
+        <p className="text-sm text-stone-600">Es lo que ven las empresas cuando postulas a una de sus ofertas.</p>
       </div>
 
       <Campo id="nombreVisible" label="Nombre que ven las empresas" ayuda="Por ejemplo, tu nombre y la inicial de tu apellido." error={err.nombreVisible}>
@@ -242,7 +242,7 @@ export function FormPerfil({
       </div>
 
       <fieldset>
-        <legend className="mb-2 text-sm font-medium text-stone-700">Rubros en los que quieres hacer turnos</legend>
+        <legend className="mb-2 text-sm font-medium text-stone-700">Rubros en los que buscas trabajo</legend>
         <div className="flex flex-wrap gap-2">
           {rubros.map((r) => {
             const sel = d.rubros.includes(r.id);
@@ -258,7 +258,7 @@ export function FormPerfil({
       </fieldset>
 
       <fieldset>
-        <legend className="mb-2 text-sm font-medium text-stone-700">Comunas donde puedes hacer turnos</legend>
+        <legend className="mb-2 text-sm font-medium text-stone-700">Comunas donde puedes trabajar</legend>
         {d.comunas.length > 0 && (
           <ul className="mb-3 flex flex-wrap gap-2">
             {d.comunas.map((id) => (

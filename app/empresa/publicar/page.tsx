@@ -16,7 +16,7 @@ export default async function PublicarTurnoPage() {
     return (
       <main className="mx-auto max-w-xl p-6">
         <h1 className="text-2xl font-semibold text-stone-900">Solo para empresas</h1>
-        <p className="mt-2 text-stone-700">Tu cuenta es de trabajador. Para publicar turnos necesitas una cuenta de empresa.</p>
+        <p className="mt-2 text-stone-700">Tu cuenta es de postulante. Para publicar ofertas necesitas una cuenta de empresa.</p>
         <Link href="/" className="mt-6 inline-block font-medium text-teal-800 underline">Volver al inicio</Link>
       </main>
     );

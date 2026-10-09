@@ -116,7 +116,7 @@ export default function FormularioEmpresa({
       titulo={registro ? "Tus datos" : "Persona a cargo"}
       descripcion={registro
         ? "Serás la persona a cargo de la cuenta: recibirás los avisos y con este correo ingresarás."
-        : "Quien coordina los turnos. Recibe los avisos y es el contacto para soporte."}
+        : "Quien gestiona las ofertas. Recibe los avisos y es el contacto para soporte."}
     >
       <Campo id="contactoNombre" label="Nombre y apellidos" error={err.contactoNombre}>
         <input id="contactoNombre" className={campo} autoComplete="name" value={d.contactoNombre} onChange={(e) => set("contactoNombre", e.target.value)} />
@@ -186,7 +186,7 @@ export default function FormularioEmpresa({
             {TAMANOS.map((t) => <option key={t}>{t}</option>)}
           </select>
         </Campo>
-        <Campo id="turnosMes" label="Turnos que publicarías al mes" ayuda="Aproximado. Nos ayuda a recomendarte un plan." error={err.turnosMes}>
+        <Campo id="turnosMes" label="Ofertas que publicarías al mes" ayuda="Aproximado. Nos ayuda a recomendarte un plan." error={err.turnosMes}>
           <select id="turnosMes" className={campo} value={d.turnosMes} onChange={(e) => set("turnosMes", e.target.value)}>
             <option value="">Elige un tramo</option>
             {TURNOS_MES.map((t) => <option key={t}>{t}</option>)}

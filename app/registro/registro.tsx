@@ -14,8 +14,8 @@ const EMPRESA_VACIA: EmpresaInput = {
 };
 
 const TIPOS = [
-  { id: "trabajador", titulo: "Busco turnos", texto: "Quiero encontrar turnos por horas, por día o de fin de semana y postular." },
-  { id: "empresa", titulo: "Necesito personal", texto: "Quiero publicar turnos y recibir postulaciones." },
+  { id: "trabajador", titulo: "Busco trabajo", texto: "Quiero encontrar ofertas por horas, por día o de fin de semana y postular." },
+  { id: "empresa", titulo: "Necesito personal", texto: "Quiero publicar ofertas y recibir postulaciones. El primer mes es gratis." },
 ] as const;
 
 export default function Registro({ regiones, comunas }: { regiones: Opcion[]; comunas: (Opcion & { regionId: number })[] }) {
@@ -24,7 +24,7 @@ export default function Registro({ regiones, comunas }: { regiones: Opcion[]; co
   return (
     <main className={`mx-auto p-6 ${tipo ? "max-w-3xl" : "max-w-md"}`}>
       <h1 className="text-2xl font-semibold text-stone-900">
-        {tipo === "empresa" ? "Crea la cuenta de tu empresa" : tipo === "trabajador" ? "Crea tu cuenta para postular a turnos" : "Crear cuenta"}
+        {tipo === "empresa" ? "Crea la cuenta de tu empresa" : tipo === "trabajador" ? "Crea tu cuenta para postular a ofertas" : "Crear cuenta"}
       </h1>
 
       {!tipo ? (
@@ -42,7 +42,7 @@ export default function Registro({ regiones, comunas }: { regiones: Opcion[]; co
         <div className="mt-2 space-y-4">
           <p className="text-stone-600">
             {tipo === "empresa"
-              ? "Completa los datos una sola vez y podrás publicar tu primer turno de inmediato."
+              ? "Completa los datos una sola vez y podrás publicar tu primera oferta de inmediato. El primer mes es gratis."
               : "Paso 1 de 3: tus datos. Después subirás tu CV y completarás tu perfil."}
           </p>
           <button type="button" onClick={() => setTipo(null)} className="text-sm text-stone-600 underline">

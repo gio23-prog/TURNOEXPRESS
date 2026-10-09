@@ -12,7 +12,7 @@ export type TipoContrato = (typeof TIPOS_CONTRATO)[number]["id"];
 export const nombreContrato = (id: string | null | undefined) => TIPOS_CONTRATO.find((t) => t.id === id)?.nombre ?? "Por definir";
 
 export const NORMAS = [
-  "Sin teléfonos, correos, enlaces ni WhatsApp: la comunicación ocurre dentro de TurnoExpress.",
+  "Sin teléfonos, correos, enlaces ni WhatsApp: las personas postulan por TurnoExpress y tú recibes sus datos de contacto.",
   "Un solo puesto y una sola ubicación por publicación.",
   "Título claro con el nombre del puesto, sin mayúsculas sostenidas.",
   "Pago con monto fijo: no se aceptan pagos solo por comisión ni esquemas multinivel.",
@@ -27,7 +27,7 @@ const REGLAS: [RegExp[], string][] = [
     /\b[a-z0-9-]+\.(cl|com|net|org|io|app|link|ly|me)\b/i,
     /(\+?56[ .-]?)?\b9[ .-]?\d{4}[ .-]?\d{4}\b/,
     /\b(whatsapp|whatsap|wsp|wasap|telegram)\b/i,
-  ], "No incluyas teléfonos, correos, enlaces ni WhatsApp. Los postulantes te escriben por TurnoExpress."],
+  ], "No incluyas teléfonos, correos, enlaces ni WhatsApp. Recibirás el contacto de cada postulante en TurnoExpress."],
   [[
     /(debes|deber[aá]s|tienes que|hay que|se debe)\s+(pagar|cancelar|depositar|transferir|comprar)/i,
     /(costo|valor|precio|pago)\s+de\s+(la\s+)?(inscripci[oó]n|matr[ií]cula|curso|capacitaci[oó]n|credencial|kit)/i,

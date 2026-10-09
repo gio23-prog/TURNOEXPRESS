@@ -24,7 +24,7 @@ export default function Encabezado({ sesion }: { sesion: Sesion }) {
         <nav className="flex items-center gap-1 text-sm">
           <Link href="/trabajos" className={`rounded-lg px-2 py-2 font-medium text-stone-700 hover:bg-stone-100 sm:px-3 ${sesion?.role === "empresa" ? "hidden sm:inline" : ""}`}>
             <span className="sm:hidden">Buscar</span>
-            <span className="hidden sm:inline">Buscar turnos</span>
+            <span className="hidden sm:inline">Buscar ofertas</span>
           </Link>
           {sesion?.role === "trabajador" && (
             <Link href="/trabajador/postulaciones" className="rounded-lg px-2 py-2 font-medium text-stone-700 hover:bg-stone-100 sm:px-3">
@@ -37,7 +37,7 @@ export default function Encabezado({ sesion }: { sesion: Sesion }) {
           )}
           {sesion?.role === "empresa" && (
             <>
-              <Link href="/empresa/publicaciones" className="rounded-lg px-2 py-2 font-medium text-stone-700 hover:bg-stone-100 sm:px-3">Mis turnos</Link>
+              <Link href="/empresa/publicaciones" className="rounded-lg px-2 py-2 font-medium text-stone-700 hover:bg-stone-100 sm:px-3">Mis ofertas</Link>
               <Link href="/empresa/publicar" className="hidden rounded-lg px-3 py-2 font-medium text-stone-700 hover:bg-stone-100 sm:inline">
                 Publicar
               </Link>

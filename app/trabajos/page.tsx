@@ -90,7 +90,7 @@ export default async function Trabajos({
       <Encabezado sesion={sesion} />
 
       <main className="mx-auto max-w-5xl px-4 py-6">
-        <h1 className="text-2xl font-bold tracking-tight">Buscar turnos</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Buscar ofertas</h1>
 
         <nav aria-label="Atajos" className="mt-4 flex gap-2 overflow-x-auto pb-1">
           <Link
@@ -116,20 +116,20 @@ export default async function Trabajos({
           <section aria-live="polite" className="min-w-0">
             {error ? (
               <p role="alert" className="rounded-xl border border-red-200 bg-red-50 p-4 text-red-800">
-                No pudimos cargar los turnos. Recarga la página en un momento.
+                No pudimos cargar las ofertas. Recarga la página en un momento.
               </p>
             ) : turnos.length === 0 ? (
               <div className="rounded-xl border border-dashed border-stone-300 bg-white p-8 text-center">
-                <p className="font-semibold">No hay turnos con estos filtros</p>
+                <p className="font-semibold">No hay ofertas con estos filtros</p>
                 <p className="mt-1 text-sm text-stone-600">Prueba con otra comuna, otra fecha o quita algún filtro.</p>
                 <Link href="/trabajos" className="mt-4 inline-block font-medium text-teal-800 underline">
-                  Ver todos los turnos
+                  Ver todas las ofertas
                 </Link>
               </div>
             ) : (
               <>
                 <p className="text-sm text-stone-600 tabular-nums">
-                  {total === 1 ? "1 turno disponible" : `${total} turnos disponibles`}
+                  {total === 1 ? "1 oferta disponible" : `${total} ofertas disponibles`}
                 </p>
                 <ul className="mt-3 space-y-3">
                   {turnos.map((t) => (

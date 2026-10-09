@@ -14,24 +14,28 @@ async function sesionEmpresa() {
   return { supabase, ok: !!auth.user };
 }
 
-/** Preseleccionar o descartar a un postulante (la base valida qué cambios están permitidos). */
-export async function cambiarEstado(jobId: string, applicationId: string, estado: "preseleccionada" | "rechazada"): Promise<Resultado> {
+/** Preseleccionar, volver a revisión o descartar a un postulante (la base valida qué cambios están permitidos). */
+export async function cambiarEstado(
+  jobId: string, applicationId: string, estado: "preseleccionada" | "en_revision" | "rechazada",
+): Promise<Resultado> {
   if (!esUUID(jobId) || !esUUID(applicationId)) return { ok: false, mensaje: "Postulación no encontrada." };
   const { supabase, ok } = await sesionEmpresa();
   if (!ok) return { ok: false, mensaje: "Tu sesión expiró. Vuelve a ingresar." };
   const { error } = await supabase.rpc("set_application_status", { p_app: applicationId, p_status: estado });
   if (error) return { ok: false, mensaje: mensajeDe(error, "No pudimos actualizar la postulación.") };
   revalidatePath(`/empresa/publicaciones/${jobId}`);
-  return { ok: true, mensaje: estado === "preseleccionada" ? "Preseleccionado." : "Descartado." };
+  return { ok: true, mensaje: estado === "preseleccionada" ? "Preseleccionado." : estado === "rechazada" ? "Descartado." : "Listo." };
 }
 
-export async function enviarOferta(jobId: string, applicationId: string, mensaje: string): Promise<Resultado> {
-  if (!esUUID(jobId) || !esUUID(applicationId)) return { ok: false, mensaje: "Postulación no encontrada." };
-  if (mensaje.length > 500) return { ok: false, mensaje: "El mensaje puede tener máximo 500 caracteres." };
+/** Cerrar la oferta: deja de recibir postulaciones y avisa a quienes seguían en proceso. */
+export async function cerrarOferta(jobId: string, motivo: string): Promise<Resultado> {
+  if (!esUUID(jobId)) return { ok: false, mensaje: "Oferta no encontrada." };
+  if (motivo.trim().length < 5) return { ok: false, mensaje: "Indica el motivo del cierre." };
   const { supabase, ok } = await sesionEmpresa();
   if (!ok) return { ok: false, mensaje: "Tu sesión expiró. Vuelve a ingresar." };
-  const { error } = await supabase.rpc("send_offer", { p_app: applicationId, p_message: mensaje.trim() || null });
-  if (error) return { ok: false, mensaje: mensajeDe(error, "No pudimos enviar la oferta.") };
+  const { error } = await supabase.rpc("cancel_job", { p_job: jobId, p_reason: motivo.trim().slice(0, 300) });
+  if (error) return { ok: false, mensaje: mensajeDe(error, "No pudimos cerrar la oferta.") };
   revalidatePath(`/empresa/publicaciones/${jobId}`);
-  return { ok: true, mensaje: "Oferta enviada. Te avisaremos cuando responda." };
+  revalidatePath("/empresa/publicaciones");
+  return { ok: true, mensaje: "Oferta cerrada." };
 }

@@ -70,8 +70,6 @@ select throws_ok($$ insert into job_posts (business_id, title, category_id, desc
 select throws_ok($$ update job_posts set status = 'publicada' where id = current_setting('t.job1')::uuid $$,
   '42501', null, 'El estado no se puede cambiar directamente');
 
-select throws_like($$ select publish_job(current_setting('t.job1')::uuid) $$, '%dirección%', 'Exige dirección para publicar');
-insert into job_post_private (job_id, address_line) values (current_setting('t.job1')::uuid, 'Av. Providencia 1234');
 select throws_like($$ select publish_job(current_setting('t.job1')::uuid) $$, '%modalidad de prestación%',
   'Exige responder el cuestionario de modalidad');
 update job_posts set q_autonomy = true, q_direct_supervision = false, q_imposed_schedule = true,
@@ -89,7 +87,6 @@ with x as (
           (select id from comunas where name = 'Santiago'), 'por_hora', 45000, 'prestacion_independiente', false, true, true, true, false)
   returning id)
 select set_config('t.job2', id::text, true) from x;
-insert into job_post_private (job_id, address_line) values (current_setting('t.job2')::uuid, 'Huérfanos 1000');
 select throws_like($$ select publish_job(current_setting('t.job2')::uuid) $$, '%advertencia%', 'Riesgo alto exige confirmar advertencia');
 update job_posts set labor_warning_ack_at = now() where id = current_setting('t.job2')::uuid;
 reset role;
@@ -107,13 +104,11 @@ update profiles set phone = '+56912345678', rut = '5.126.663-3' where id = auth.
 insert into worker_private (user_id, address_line, comuna_id) values (auth.uid(), 'Pasaje Uno 123', (select id from comunas where name = 'Santiago'));
 update worker_profiles set cv_path = auth.uid()::text || '/cv-1.pdf' where user_id = auth.uid();
 select is((select count(*)::int from search_jobs(p_quick => 'manana') where id = current_setting('t.job1')::uuid), 1,
-  'El buscador encuentra el turno de mañana');
+  'El buscador encuentra la oferta de mañana');
 select is((select count(*)::int from search_jobs(p_category => (select id from categories where slug = 'gastronomia'))
            where id = current_setting('t.job1')::uuid), 1, 'Filtrar por categoría padre incluye subcategorías');
 select is((select count(*)::int from search_jobs(p_comunas => array[(select id from comunas where name = 'Maipú')])), 0,
   'Filtro por comuna excluye otras comunas');
-select is((select count(*)::int from job_post_private where job_id = current_setting('t.job1')::uuid), 0,
-  'La dirección exacta no es visible antes de contratar');
 select throws_like($$ select apply_to_job(current_setting('t.job1')::uuid, false) $$, '%disponibilidad%', 'Exige confirmar disponibilidad');
 select set_config('t.app1', apply_to_job(current_setting('t.job1')::uuid, true, 'Tengo 3 años de experiencia')::text, true);
 select throws_like($$ select apply_to_job(current_setting('t.job1')::uuid, true) $$, '%Ya postulaste%', 'Evita postulaciones duplicadas');
@@ -145,118 +140,46 @@ select is((select count(*)::int from applications where job_id = current_setting
   'Otra empresa no ve postulaciones ajenas');
 select is((select count(*)::int from worker_profiles where user_id = 'a0000000-0000-0000-0000-000000000002'), 0,
   'Perfil privado no es visible para empresas sin relación');
-select throws_like($$ select send_offer(current_setting('t.app1')::uuid) $$, '%no encontrada%', 'Otra empresa no puede ofertar');
+select is((select count(*)::int from job_applicant_contacts(current_setting('t.job1')::uuid)), 0,
+  'Otra empresa no ve el contacto de postulantes ajenos');
+select throws_like($$ select set_application_status(current_setting('t.app1')::uuid, 'preseleccionada') $$, '%no encontrada%',
+  'Otra empresa no puede cambiar el estado de postulaciones ajenas');
 
--- ============================================================ Selección y oferta
+-- ============================================================ Selección y contacto directo
 set local request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000001';
 select is((select count(*)::int from applications where job_id = current_setting('t.job1')::uuid), 2, 'La empresa ve sus postulantes');
 select is((select count(*)::int from worker_profiles where user_id = 'a0000000-0000-0000-0000-000000000002'), 1,
   'La empresa ve el perfil privado de quien le postuló');
+select is((select count(*)::int from job_applicant_contacts(current_setting('t.job1')::uuid)), 2,
+  'La empresa ve el contacto de sus postulantes');
+select is((select email from job_applicant_contacts(current_setting('t.job1')::uuid)
+           where application_id = current_setting('t.app1')::uuid), 'w1@test.cl', 'El contacto incluye el correo');
+select is((select phone from job_applicant_contacts(current_setting('t.job1')::uuid)
+           where application_id = current_setting('t.app1')::uuid), '+56912345678', 'El contacto incluye el teléfono');
 select lives_ok($$ select set_application_status(current_setting('t.app1')::uuid, 'preseleccionada') $$, 'Preselecciona');
 select throws_like($$ select set_application_status(current_setting('t.app1')::uuid, 'aceptada') $$, '%no permitido%',
-  'Transición de estado inválida rechazada');
-select is((select count(*)::int from conversations where application_id = current_setting('t.app1')::uuid), 1,
-  'La preselección habilita la mensajería');
-select set_config('t.conv1', (select id::text from conversations where application_id = current_setting('t.app1')::uuid), true);
-select set_config('t.offer1', send_offer(current_setting('t.app1')::uuid, 'Te esperamos 17:45')::text, true);
-select throws_like($$ select send_offer(current_setting('t.app2')::uuid) $$, '%cupos%', 'No permite ofertar más que los cupos');
-
-set local request.jwt.claim.sub = 'a0000000-0000-0000-0000-000000000001';
-select throws_like($$ select respond_offer(current_setting('t.offer1')::uuid, true, false, null) $$, '%disponibilidad%',
-  'Aceptar exige confirmar disponibilidad');
-select set_config('t.book1', respond_offer(current_setting('t.offer1')::uuid, true, true, null)::text, true);
-select is((select status::text from bookings where id = current_setting('t.book1')::uuid), 'confirmada', 'Contratación confirmada');
-select is((select terms_snapshot->>'monto_clp' from bookings where id = current_setting('t.book1')::uuid), '30000',
-  'Se guarda el resumen de condiciones');
-select is((select count(*)::int from job_post_private where job_id = current_setting('t.job1')::uuid), 1,
-  'Con contratación activa, el trabajador ve la dirección');
-select lives_ok($$ insert into messages (conversation_id, body)
-  select id, 'Hola, llego a las 17:45' from conversations where application_id = current_setting('t.app1')::uuid $$,
-  'Las partes pueden enviarse mensajes');
-
-reset role;
-select is((select status::text from job_posts where id = current_setting('t.job1')::uuid), 'cubierta', 'La publicación queda cubierta');
-set local role authenticated;
+  'Ya no existe el estado "aceptada"');
+select is((select count(*)::int from job_post_private where job_id = current_setting('t.job1')::uuid), 0,
+  'No se guarda dirección exacta al publicar');
 
 set local request.jwt.claim.sub = 'a0000000-0000-0000-0000-000000000002';
-select throws_like($$ insert into messages (conversation_id, body) values (current_setting('t.conv1')::uuid, 'intruso') $$,
-  '%row-level security%', 'Un tercero no puede escribir en la conversación');
-select is((select count(*)::int from messages), 0, 'Un tercero no puede leer la conversación');
-
--- ============================================================ Superposición de horarios
-set local request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000002';
-with x as (
-  insert into job_posts (business_id, title, category_id, description, starts_at, ends_at, comuna_id, pay_type, pay_amount_clp,
-                         q_autonomy, q_direct_supervision, q_imposed_schedule, q_continuous_instructions, q_core_recurring)
-  values (auth.uid(), 'Promotora evento', (select id from categories where slug = 'promotor'),
-          'Promoción de producto en evento con material entregado.',
-          current_setting('t.start')::timestamptz + interval '2 hours', current_setting('t.start')::timestamptz + interval '5 hours',
-          (select id from comunas where name = 'Ñuñoa'), 'total', 25000, true, false, false, false, false)
-  returning id)
-select set_config('t.job3', id::text, true) from x;
-insert into job_post_private (job_id, address_line) values (current_setting('t.job3')::uuid, 'Irarrázaval 3000');
-select publish_job(current_setting('t.job3')::uuid);
-set local request.jwt.claim.sub = 'a0000000-0000-0000-0000-000000000001';
-select set_config('t.app3', apply_to_job(current_setting('t.job3')::uuid, true)::text, true);
-select is((select count(*)::int from my_overlapping_bookings(current_setting('t.job3')::uuid)), 1,
-  'Detecta superposición para advertir en la interfaz');
-set local request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000002';
-select set_config('t.offer3', send_offer(current_setting('t.app3')::uuid)::text, true);
-set local request.jwt.claim.sub = 'a0000000-0000-0000-0000-000000000001';
-select throws_like($$ select respond_offer(current_setting('t.offer3')::uuid, true, true, null) $$, '%se superpone%',
-  'Bloquea contrataciones con horarios superpuestos');
-select lives_ok($$ select set_config('t.book3', respond_offer(current_setting('t.offer3')::uuid, true, true,
-  'El evento es en el mismo local y la empresa 1 lo autorizó por escrito')::text, true) $$,
-  'Permite superposición con justificación explícita');
-
--- Cancelación con registro
-set local request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000002';
-select throws_like($$ select cancel_booking(current_setting('t.book3')::uuid, '') $$, '%motivo%', 'Cancelar exige motivo');
-select lives_ok($$ select cancel_booking(current_setting('t.book3')::uuid, 'Se suspendió el evento') $$, 'La empresa cancela');
-select is((select cancelled_by::text from bookings where id = current_setting('t.book3')::uuid),
-  'b0000000-0000-0000-0000-000000000002', 'La cancelación registra quién la hizo');
-select is((select count(*)::int from booking_status_history where booking_id = current_setting('t.book3')::uuid), 2,
-  'El historial registra creación y cancelación');
-
--- ============================================================ Finalización y evaluaciones
-set local request.jwt.claim.sub = 'a0000000-0000-0000-0000-000000000001';
-select throws_like($$ select submit_review(current_setting('t.book1')::uuid, 5) $$, '%finalizados%',
-  'No se puede evaluar antes de finalizar');
-select throws_like($$ select confirm_completion(current_setting('t.book1')::uuid) $$, '%antes del inicio%',
-  'No se puede finalizar antes del inicio');
-
-reset role;  -- simula el paso del tiempo
-update bookings set starts_at = now() - interval '7 hours', ends_at = now() - interval '1 hour'
- where id = current_setting('t.book1')::uuid;
-set local role authenticated;
-
-set local request.jwt.claim.sub = 'a0000000-0000-0000-0000-000000000001';
-select is(confirm_completion(current_setting('t.book1')::uuid)::text, 'en_curso', 'Confirmación de una parte');
+select lives_ok($$ select withdraw_application(current_setting('t.app2')::uuid) $$, 'El postulante retira su postulación');
 set local request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000001';
-select is(confirm_completion(current_setting('t.book1')::uuid)::text, 'finalizada', 'Con ambas confirmaciones queda finalizada');
-select is((select count(*)::int from booking_status_history where booking_id = current_setting('t.book1')::uuid), 3,
-  'Historial: confirmada → en_curso → finalizada');
-select lives_ok($$ select submit_review(current_setting('t.book1')::uuid, 5, 'Excelente') $$, 'La empresa evalúa');
-set local request.jwt.claim.sub = 'a0000000-0000-0000-0000-000000000001';
-select lives_ok($$ select submit_review(current_setting('t.book1')::uuid, 4) $$, 'El trabajador evalúa');
-select throws_like($$ select submit_review(current_setting('t.book1')::uuid, 3) $$, '%Ya evaluaste%', 'Una sola evaluación por parte');
-set local request.jwt.claim.sub = 'a0000000-0000-0000-0000-000000000002';
-select throws_like($$ select submit_review(current_setting('t.book1')::uuid, 1) $$, '%no encontrada%',
-  'Quien no participó no puede evaluar');
+select is((select count(*)::int from job_applicant_contacts(current_setting('t.job1')::uuid)), 1,
+  'Tras retirarse, la empresa ya no ve su contacto');
 
--- ============================================================ Documento tributario
-set local request.jwt.claim.sub = 'a0000000-0000-0000-0000-000000000001';
-select throws_like($$ select register_tax_document(current_setting('t.book1')::uuid, 'emitido') $$, '%folio%',
-  'No se marca como emitido sin folio y fecha');
-select lives_ok($$ select register_tax_document(current_setting('t.book1')::uuid, 'emitido', '1234',
-  (now() at time zone 'America/Santiago')::date, 30000) $$, 'Registra boleta emitida externamente');
-select throws_like($$ select register_tax_document(current_setting('t.book1')::uuid, 'revisado', '1234', current_date) $$,
-  '%Sólo la empresa%', 'El prestador no puede marcar como revisado');
-set local request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000002';
-select is((select count(*)::int from tax_documents), 0, 'Terceros no ven documentos tributarios');
-set local request.jwt.claim.sub = 'b0000000-0000-0000-0000-000000000001';
-select lives_ok($$ select mark_tax_document_reviewed((select id from tax_documents where booking_id = current_setting('t.book1')::uuid)) $$,
-  'La empresa marca el documento como revisado');
+select throws_like($$ select cancel_job(current_setting('t.job1')::uuid, '') $$, '%motivo%', 'Cerrar una oferta exige motivo');
+select lives_ok($$ select cancel_job(current_setting('t.job1')::uuid, 'Ya encontramos a la persona') $$, 'La empresa cierra la oferta');
+select is((select status::text from applications where id = current_setting('t.app1')::uuid), 'rechazada',
+  'Al cerrar la oferta, las postulaciones abiertas quedan no seleccionadas');
+select is((select count(*)::int from search_jobs() where id = current_setting('t.job1')::uuid), 0,
+  'Una oferta cerrada no aparece en el buscador');
+
+-- ============================================================ Mes gratis
+select ok((select trial_ends_at between now() + interval '27 days' and now() + interval '32 days'
+           from business_profiles where user_id = auth.uid()), 'La empresa tiene un mes gratis desde su registro');
+select throws_ok($$ update business_profiles set trial_ends_at = now() + interval '10 years' where user_id = auth.uid() $$,
+  '42501', null, 'La empresa no puede extender su mes gratis');
 
 -- ============================================================ Escalamiento de privilegios
 set local request.jwt.claim.sub = 'a0000000-0000-0000-0000-000000000001';
@@ -264,7 +187,7 @@ select throws_ok($$ insert into admin_roles (user_id, level) values (auth.uid(),
   'No se puede autoasignar rol de administrador');
 select throws_ok($$ update profiles set is_blocked = false where id = auth.uid() $$, '42501', null,
   'No se puede modificar el bloqueo propio');
-select throws_ok($$ update bookings set status = 'finalizada' $$, '42501', null, 'No se puede alterar contrataciones directamente');
+select throws_ok($$ update applications set status = 'preseleccionada' $$, '42501', null, 'No se puede alterar postulaciones directamente');
 select throws_ok($$ select admin_suspend_job(current_setting('t.job1')::uuid, 'prueba de abuso') $$, '42501', null,
   'Funciones de administración bloqueadas para usuarios');
 select is((select count(*)::int from audit_logs), 0, 'El registro de auditoría no es visible para usuarios');
@@ -278,13 +201,13 @@ select lives_ok($$ select admin_review_job(current_setting('t.job2')::uuid, true
 select lives_ok($$ select admin_set_user_block('a0000000-0000-0000-0000-000000000002', true, 'Reiteradas ausencias') $$,
   'El admin bloquea a un usuario');
 select ok((select count(*) from audit_logs where action like 'admin.%') >= 2, 'Las acciones administrativas quedan auditadas');
-select is((admin_metrics() ->> 'servicios_finalizados')::int, 1, 'Métricas reales: 1 servicio finalizado');
+select is((admin_metrics() ->> 'postulaciones')::int, 2, 'Métricas reales: 2 postulaciones');
 
 set local request.jwt.claim.sub = 'a0000000-0000-0000-0000-000000000002';
 select throws_like($$ select apply_to_job(current_setting('t.job2')::uuid, true) $$, '%suspendida%', 'Usuario bloqueado no puede operar');
 
 reset role;
-select ok(refresh_time_states() ? 'publicaciones_vencidas', 'El mantenimiento por tiempo se ejecuta');
+select ok(refresh_time_states() ? 'ofertas_vencidas', 'El mantenimiento por tiempo se ejecuta');
 
 select * from finish();
 rollback;

@@ -37,3 +37,12 @@
 - Condiciones del empleador al publicar: lib/condiciones.ts
 - Datos del operador a completar: lib/operador.ts
 Revisar con abogado: rol de intermediación frente a la Ley 21.431 y a las EST; plazos de conservación; transferencias internacionales; procedimiento ante la Agencia de Protección de Datos (Ley 21.719); cláusulas de responsabilidad frente a la Ley 19.496.
+
+## E. Modelo de portal de difusión de ofertas (09/10/2026)
+Decisión: TurnoExpress solo difunde ofertas y recibe postulaciones. No selecciona, no contrata, no paga y no registra contrataciones.
+Puntos para revisar con un abogado antes del lanzamiento:
+- Confirmar que el modelo no constituye agencia de empleo, empresa de servicios transitorios ni subcontratación (Código del Trabajo, Libro I Título VII y Ley 20.123), dado que no hay intermediación en la contratación ni cobro al postulante.
+- Datos personales (Ley 19.628 y Ley 21.719): al postular, la empresa recibe nombre, teléfono, correo y CV. Revisar si basta el aviso al postular + Política de Privacidad o si se requiere consentimiento expreso separado, y la calidad de la empresa como responsable independiente desde que recibe los datos.
+- Cobro a empresas después del mes gratis: definir precio, boleta/factura de TurnoExpress, Ley 19.496 (información de precio antes de contratar, sin renovación automática no aceptada). Hoy no se cobra nada.
+- Mantener la gratuidad para postulantes y la prohibición de cobros al postulante en las normas de publicación.
+- Las normas contra discriminación (art. 2 Código del Trabajo) y las preguntas prohibidas siguen aplicando a las ofertas.

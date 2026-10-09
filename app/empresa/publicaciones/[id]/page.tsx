@@ -6,15 +6,15 @@ import { ESTADO_PUBLICACION, GRUPOS_EMPRESA } from "@/lib/estados";
 import { nombreContrato } from "@/lib/reglas-publicacion";
 import Encabezado, { obtenerSesion } from "@/app/componentes/encabezado";
 import { PildoraEstado } from "@/app/componentes/estado";
-import { AccionesPostulante } from "./acciones";
+import { AccionesPostulante, CerrarOferta } from "./acciones";
 
 type Postulante = {
   id: string; status: string; created_at: string; updated_at: string; worker_id: string;
   message: string | null; highlighted_experience: string | null; disqualified: boolean; cv_path: string | null;
   worker_profiles: { display_name: string; years_experience: number | null; can_issue_boleta: boolean; bio: string | null } | null;
   application_answers: { question_id: string; answer: string }[];
-  offers: { status: string; expires_at: string }[];
 };
+type Contacto = { application_id: string; full_name: string; phone: string | null; email: string | null };
 type Pregunta = { id: string; position: number; prompt: string; kind: string; disqualifying: string[] | null };
 
 export default async function PostulantesTurno({
@@ -43,7 +43,7 @@ export default async function PostulantesTurno({
     .from("applications")
     .select(
       "id, status, created_at, updated_at, worker_id, message, highlighted_experience, disqualified, cv_path, " +
-      "worker_profiles(display_name, years_experience, can_issue_boleta, bio), application_answers(question_id, answer), offers(status, expires_at)"
+      "worker_profiles(display_name, years_experience, can_issue_boleta, bio), application_answers(question_id, answer)"
     )
     .eq("job_id", id)
     .order("created_at");
@@ -58,27 +58,24 @@ export default async function PostulantesTurno({
     resultados.forEach((r, k) => { if (!r.error) nuevos[k].status = "en_revision"; });
   }
 
-  const workerIds = postulantes.map((p) => p.worker_id);
-  const [{ data: preguntasRaw }, { data: ratings }] = await Promise.all([
+  const [{ data: preguntasRaw }, { data: contactosRaw }] = await Promise.all([
     supabase.rpc("my_job_questions", { p_job: id }),
-    workerIds.length
-      ? supabase.from("v_worker_ratings").select("worker_id, rating_avg, rating_count, services_done").in("worker_id", workerIds)
-      : Promise.resolve({ data: [] }),
+    supabase.rpc("job_applicant_contacts", { p_job: id }),
   ]);
   const preguntas = (preguntasRaw ?? []) as Pregunta[];
-  const rating = new Map((ratings as { worker_id: string; rating_avg: number; rating_count: number; services_done: number }[] | null ?? [])
-    .map((r) => [r.worker_id, r]));
+  const contacto = new Map(((contactosRaw ?? []) as Contacto[]).map((c) => [c.application_id, c]));
 
-  const enGrupo = (p: Postulante, g: (typeof GRUPOS_EMPRESA)[number]) => !g.estados || (g.estados as readonly string[]).includes(p.status);
+  const enGrupo = (p: Postulante, g: (typeof GRUPOS_EMPRESA)[number]) => (g.estados as readonly string[]).includes(p.status);
   const lista = postulantes.filter((p) => enGrupo(p, grupo));
-  const confirmados = postulantes.filter((p) => ["aceptada", "finalizada"].includes(p.status)).length;
+  const preseleccionados = postulantes.filter((p) => p.status === "preseleccionada").length;
+  const abierta = ["publicada", "con_postulaciones", "en_revision"].includes(t.status);
   const comuna = (t.comunas as unknown as { name: string } | null)?.name;
 
   return (
     <div className="min-h-full bg-stone-50 text-stone-900">
       <Encabezado sesion={sesion} />
       <main className="mx-auto max-w-4xl px-4 py-6">
-        <Link href="/empresa/publicaciones" className="text-sm font-medium text-teal-800 underline">← Mis turnos</Link>
+        <Link href="/empresa/publicaciones" className="text-sm font-medium text-teal-800 underline">← Mis ofertas</Link>
 
         <header className="mt-3 rounded-2xl border border-stone-200 bg-white p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
@@ -93,13 +90,21 @@ export default async function PostulantesTurno({
             </div>
             <div className="text-right">
               <span className="rounded-full bg-stone-100 px-2.5 py-1 text-xs font-semibold text-stone-700">{ESTADO_PUBLICACION[t.status] ?? t.status}</span>
-              <p className="mt-2 text-sm text-stone-600 tabular-nums">{confirmados} de {t.slots} {t.slots === 1 ? "cupo cubierto" : "cupos cubiertos"}</p>
+              <p className="mt-2 text-sm text-stone-600 tabular-nums">
+                {t.slots} {t.slots === 1 ? "vacante" : "vacantes"} · {preseleccionados} {preseleccionados === 1 ? "preseleccionado" : "preseleccionados"}
+              </p>
             </div>
           </div>
           {t.status === "en_revision" && t.review_note && (
             <p className="mt-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-900">{t.review_note}</p>
           )}
-          <Link href={`/trabajos/${t.id}`} className="mt-3 inline-block text-sm font-medium text-teal-800 underline">Ver como lo ven los trabajadores</Link>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <Link href={`/trabajos/${t.id}`} className="text-sm font-medium text-teal-800 underline">Ver como la ven los postulantes</Link>
+            {abierta && <CerrarOferta jobId={t.id} />}
+          </div>
+          <p className="mt-3 text-xs text-stone-500">
+            Contacta directamente a los postulantes que te interesen. Usa sus datos solo para este proceso de selección.
+          </p>
         </header>
 
         <nav aria-label="Filtrar postulantes" className="mt-5 flex gap-2 overflow-x-auto pb-1">
@@ -126,25 +131,36 @@ export default async function PostulantesTurno({
           <ul className="mt-4 space-y-3">
             {lista.map((p) => {
               const w = p.worker_profiles;
-              const r = rating.get(p.worker_id);
-              const ofertaAbierta = p.offers?.find((o) => o.status === "enviada");
+              const c = contacto.get(p.id);
               return (
                 <li key={p.id} className="rounded-2xl border border-stone-200 bg-white p-4 shadow-sm sm:p-5">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-lg font-bold">{w?.display_name ?? "Postulante"}</p>
+                      <p className="text-lg font-bold">{c?.full_name ?? w?.display_name ?? "Postulante"}</p>
                       <p className="text-sm text-stone-600">
-                        {r ? `${r.rating_avg} ★ (${r.rating_count}) · ${r.services_done} servicios` : "Sin evaluaciones aún"}
-                        {w?.years_experience != null && <> · {w.years_experience} años de experiencia</>}
+                        {w?.years_experience != null ? `${w.years_experience} años de experiencia` : "Experiencia no indicada"}
                         {w?.can_issue_boleta && <> · Emite boleta</>}
                       </p>
                       <p className="text-xs text-stone-500">Postuló {haceTiempo(p.created_at).toLowerCase()}</p>
-                      {p.cv_path && (
-                        <a href={`/empresa/publicaciones/${id}/cv/${p.id}`} target="_blank" rel="noopener"
-                          className="mt-1 inline-block text-sm font-medium text-teal-800 underline">
-                          Ver currículum (PDF)
-                        </a>
-                      )}
+                      <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                        {c?.phone && (
+                          <a href={`tel:${c.phone}`} className="font-medium text-teal-800 underline">
+                            {c.phone.replace(/^\+56(\d)(\d{4})(\d{4})$/, "+56 $1 $2 $3")}
+                          </a>
+                        )}
+                        {c?.phone && (
+                          <a href={`https://wa.me/${c.phone.replace("+", "")}`} target="_blank" rel="noopener" className="font-medium text-teal-800 underline">
+                            WhatsApp
+                          </a>
+                        )}
+                        {c?.email && <a href={`mailto:${c.email}`} className="font-medium text-teal-800 underline">{c.email}</a>}
+                        {p.cv_path && (
+                          <a href={`/empresa/publicaciones/${id}/cv/${p.id}`} target="_blank" rel="noopener"
+                            className="font-medium text-teal-800 underline">
+                            Ver currículum (PDF)
+                          </a>
+                        )}
+                      </div>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       {p.disqualified && (
@@ -181,13 +197,7 @@ export default async function PostulantesTurno({
                   )}
 
                   <div className="mt-4">
-                    {ofertaAbierta ? (
-                      <p className="text-sm text-amber-900">Oferta enviada. Esperando respuesta hasta las {hora(ofertaAbierta.expires_at)}.</p>
-                    ) : p.status === "aceptada" ? (
-                      <p className="text-sm font-medium text-emerald-800">Turno confirmado. Ya puede ver la dirección.</p>
-                    ) : (
-                      <AccionesPostulante jobId={id} applicationId={p.id} estado={p.status} />
-                    )}
+                    <AccionesPostulante jobId={id} applicationId={p.id} estado={p.status} />
                   </div>
                 </li>
               );

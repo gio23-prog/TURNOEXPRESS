@@ -5,15 +5,15 @@ import { empresaCompleta, RUTA_COMPLETAR_EMPRESA } from "@/lib/empresa";
 import Encabezado, { obtenerSesion } from "./componentes/encabezado";
 
 const PASOS_EMPRESA = [
-  ["Publica el turno", "Fecha, horario, comuna y pago. Toma un par de minutos y ves el valor por hora antes de publicar."],
-  ["Revisa postulantes", "Mira experiencia y evaluaciones de quienes postularon y elige a quien prefieras."],
-  ["Confirma y evalúa", "La persona acepta, recibe la dirección y las condiciones. Al terminar, ambos se evalúan."],
+  ["Publica la oferta", "Fecha, horario, comuna y pago. Toma un par de minutos y ves el valor por hora antes de publicar."],
+  ["Revisa postulantes", "Mira el currículum y las respuestas de quienes postularon, y preselecciona a quienes te interesen."],
+  ["Contacta directamente", "Recibes el teléfono y el correo de cada postulante. La selección y la contratación son tuyas."],
 ] as const;
 
 const PASOS_TRABAJADOR = [
-  ["Arma tu perfil", "Indica qué sabes hacer, en qué comunas puedes trabajar y tu disponibilidad."],
-  ["Postula desde el teléfono", "Filtra por fecha, comuna y tarifa. Postular es gratis y toma pocos pasos."],
-  ["Trabaja con condiciones claras", "Antes de aceptar ves horario, pago y modalidad. Nada cambia sin tu aprobación."],
+  ["Arma tu perfil", "Tus datos, tu currículum en PDF, qué sabes hacer y en qué comunas puedes trabajar."],
+  ["Postula desde el teléfono", "Filtra por fecha, comuna y pago. Postular es gratis y tu currículum se envía solo."],
+  ["Sigue tu postulación", "Ves cuándo la empresa revisa tu CV o te preselecciona. Si le interesas, te contacta directamente."],
 ] as const;
 
 export default async function Inicio() {
@@ -39,11 +39,11 @@ export default async function Inicio() {
         <section className="mx-auto grid max-w-5xl items-center gap-10 px-4 py-12 md:grid-cols-[1.15fr_1fr] md:py-16">
           <div>
             <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-balance sm:text-5xl">
-              Turnos cubiertos hoy, en todo Chile.
+              Ofertas por horas y por día, en todo Chile.
             </h1>
             <p className="mt-4 max-w-prose text-lg text-stone-600">
-              Si a tu negocio le falta alguien para el turno de esta noche, publícalo en minutos. Si buscas turnos por
-              horas, por día o de fin de semana, postula a los que están cerca de ti.
+              Si a tu negocio le falta alguien para esta noche o el fin de semana, publica la oferta en minutos. Si buscas
+              trabajo por horas, por día o de fin de semana, postula a las ofertas cerca de ti.
             </p>
 
             {perfil ? (
@@ -54,11 +54,11 @@ export default async function Inicio() {
                   </Link>
                 ) : perfil.role === "empresa" ? (
                   <Link href="/empresa/publicar" className="rounded-xl bg-teal-700 px-6 py-3 text-center font-semibold text-white hover:bg-teal-800">
-                    Publicar un turno
+                    Publicar una oferta
                   </Link>
                 ) : (
                   <Link href="/trabajos" className="rounded-xl bg-teal-700 px-6 py-3 text-center font-semibold text-white hover:bg-teal-800">
-                    Buscar turnos
+                    Buscar ofertas
                   </Link>
                 )}
               </div>
@@ -68,7 +68,7 @@ export default async function Inicio() {
                   Necesito personal
                 </Link>
                 <Link href="/trabajos" className="rounded-xl border border-stone-300 bg-white px-6 py-3 text-center font-semibold text-stone-800 hover:border-teal-700">
-                  Busco turnos
+                  Busco trabajo
                 </Link>
               </div>
             )}
@@ -80,7 +80,7 @@ export default async function Inicio() {
             )}
           </div>
 
-          {/* Ejemplo de turno */}
+          {/* Ejemplo de oferta */}
           <figure className="mx-auto w-full max-w-sm">
             <div className="rounded-2xl border border-stone-200 bg-white p-5 shadow-sm">
               <div className="flex items-start justify-between gap-3">
@@ -112,7 +112,7 @@ export default async function Inicio() {
                 </div>
               </dl>
             </div>
-            <figcaption className="mt-2 text-center text-xs text-stone-500">Ejemplo de cómo se ve un turno publicado</figcaption>
+            <figcaption className="mt-2 text-center text-xs text-stone-500">Ejemplo de cómo se ve una oferta publicada</figcaption>
           </figure>
         </section>
 
@@ -123,7 +123,7 @@ export default async function Inicio() {
             <div className="mt-8 grid gap-10 md:grid-cols-2">
               {[
                 ["Para negocios", PASOS_EMPRESA],
-                ["Para trabajadores", PASOS_TRABAJADOR],
+                ["Para postulantes", PASOS_TRABAJADOR],
               ].map(([titulo, pasos]) => (
                 <div key={titulo as string}>
                   <h3 className="text-sm font-semibold uppercase tracking-wider text-teal-800">{titulo as string}</h3>
@@ -167,19 +167,21 @@ export default async function Inicio() {
             <ul className="mt-5 grid gap-5 sm:grid-cols-3">
               <li>
                 <p className="font-semibold text-white">Postular es gratis</p>
-                <p className="mt-1 text-sm text-stone-300">No cobramos a los trabajadores por buscar ni por postular.</p>
+                <p className="mt-1 text-sm text-stone-300">
+                  Nunca cobramos a quienes buscan trabajo. Las empresas publican gratis su primer mes.
+                </p>
               </li>
               <li>
                 <p className="font-semibold text-white">Modalidad revisada</p>
                 <p className="mt-1 text-sm text-stone-300">
-                  Si un turno a honorarios tiene indicios de relación laboral, te indicamos el contrato que corresponde y lo
-                  revisamos después de publicado. No todo turno se puede pagar con boleta de honorarios.
+                  Si una oferta a honorarios tiene indicios de relación laboral, te indicamos el contrato que corresponde y la
+                  revisamos después de publicada. No todo trabajo se puede pagar con boleta de honorarios.
                 </p>
               </li>
               <li>
                 <p className="font-semibold text-white">Datos protegidos</p>
                 <p className="mt-1 text-sm text-stone-300">
-                  La dirección exacta solo la ve quien queda contratado. Tu RUT y teléfono nunca son públicos.
+                  Tu contacto y tu currículum solo los ve la empresa a la que postulas. Tu RUT y tu dirección no los ve nadie.
                 </p>
               </li>
             </ul>

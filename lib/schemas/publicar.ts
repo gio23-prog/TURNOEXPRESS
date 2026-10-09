@@ -17,8 +17,8 @@ export const PREGUNTAS_MODALIDAD = [
   },
   {
     id: "q_direct_supervision", indicaSi: true,
-    texto: "¿Alguien de tu equipo la supervisará directamente durante el turno?",
-    ayuda: "Sí: un jefe de turno o encargado revisa y corrige su trabajo mientras lo hace. No: solo revisas el resultado al final.",
+    texto: "¿Alguien de tu equipo la supervisará directamente durante la jornada?",
+    ayuda: "Sí: un jefe o encargado revisa y corrige su trabajo mientras lo hace. No: solo revisas el resultado al final.",
   },
   {
     id: "q_imposed_schedule", indicaSi: true,
@@ -28,7 +28,7 @@ export const PREGUNTAS_MODALIDAD = [
   {
     id: "q_continuous_instructions", indicaSi: true,
     texto: "¿Recibirá instrucciones continuas mientras trabaja?",
-    ayuda: "Sí: le irán diciendo qué hacer durante el turno. No: recibe el encargo al inicio y lo ejecuta a su manera.",
+    ayuda: "Sí: le irán diciendo qué hacer durante la jornada. No: recibe el encargo al inicio y lo ejecuta a su manera.",
   },
   {
     id: "q_core_recurring", indicaSi: true,
@@ -115,7 +115,7 @@ export type Borrador = {
   termino: string; // HH:MM
   region: string; // id de región (solo para filtrar comunas en el formulario)
   comuna: string; // id de comuna
-  direccion: string;
+  sector: string;
   urgente: boolean;
   modoPago: "total" | "hora";
   monto: string;
@@ -135,7 +135,7 @@ const idNumerico = (msg: string) => z.string().regex(/^\d+$/, msg);
 export const paso1 = z.object({
   categoria: idNumerico("Elige una categoría"),
   titulo: z.string().trim().min(5, "Escribe un título de al menos 5 caracteres").max(80, "Máximo 80 caracteres"),
-  descripcion: z.string().trim().min(20, "Describe el turno en al menos 20 caracteres").max(1000, "Máximo 1000 caracteres"),
+  descripcion: z.string().trim().min(20, "Describe la oferta en al menos 20 caracteres").max(1000, "Máximo 1000 caracteres"),
   cupos: z.number().int("Debe ser un número entero").min(1, "Mínimo 1 cupo").max(20, "Máximo 20 cupos"),
 });
 
@@ -146,11 +146,11 @@ export const paso2 = z
     termino: hora,
     region: idNumerico("Elige una región"),
     comuna: idNumerico("Elige una comuna"),
-    direccion: z.string().trim().min(5, "Escribe la dirección exacta").max(200, "Máximo 200 caracteres"),
+    sector: z.string().trim().max(160, "Máximo 160 caracteres"),
   })
   .refine((d) => d.inicio !== d.termino, { message: "El término no puede ser igual al inicio", path: ["termino"] })
   .refine((d) => new Date(horaChileAISO(d.fecha, d.inicio)).getTime() > Date.now() + 30 * 60_000, {
-    message: "El turno debe comenzar al menos 30 minutos desde ahora",
+    message: "La oferta debe comenzar al menos 30 minutos desde ahora",
     path: ["inicio"],
   });
 
@@ -227,7 +227,7 @@ export function validarPaso(n: number, d: Borrador): Record<string, string> {
   if (n === 3) return validarPreguntas(d.preguntas);
   if (n === 4) {
     const e: Record<string, string> = {};
-    if (!d.contrato) e.contrato = "Elige cómo vas a contratar este turno";
+    if (!d.contrato) e.contrato = "Elige cómo vas a contratar a la persona";
     // El cuestionario de modalidad solo aplica a la boleta de honorarios.
     if (d.contrato === "honorarios") {
       for (const p of PREGUNTAS_MODALIDAD) if (d.respuestas[p.id] === undefined) e[p.id] = "Responde sí o no";
@@ -238,7 +238,7 @@ export function validarPaso(n: number, d: Borrador): Record<string, string> {
     n === 0
       ? paso1.safeParse({ categoria: d.categoria, titulo: d.titulo, descripcion: d.descripcion, cupos: Number(d.cupos) })
       : n === 1
-        ? paso2.safeParse({ fecha: d.fecha, inicio: d.inicio, termino: d.termino, region: d.region, comuna: d.comuna, direccion: d.direccion })
+        ? paso2.safeParse({ fecha: d.fecha, inicio: d.inicio, termino: d.termino, region: d.region, comuna: d.comuna, sector: d.sector })
         : paso3.safeParse({ monto: Number(d.monto), pausas: d.pausas, vestimenta: d.vestimenta });
   const e = res.success ? {} : aMapa(res.error.issues);
   // Normas de publicación (mismas reglas que aplica la base al publicar).

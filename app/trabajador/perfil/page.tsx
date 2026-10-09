@@ -57,9 +57,9 @@ export default async function PerfilTrabajador({
       <main className="mx-auto max-w-2xl px-4 py-6">
         <h1 className="text-2xl font-bold tracking-tight">Mi perfil</h1>
         {datosOk && cvOk ? (
-          <p className="mt-1 text-stone-600">Tu perfil está listo para postular a turnos.</p>
+          <p className="mt-1 text-stone-600">Tu perfil está listo para postular a ofertas.</p>
         ) : (
-          <p className="mt-1 text-stone-600">Completa tus datos y sube tu currículum para poder postular a turnos.</p>
+          <p className="mt-1 text-stone-600">Completa tus datos y sube tu currículum para poder postular a ofertas.</p>
         )}
 
         <nav aria-label="Pasos del perfil" className="mt-5">

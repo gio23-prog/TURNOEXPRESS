@@ -91,6 +91,10 @@ export function FormularioPostular({ jobId, horario, preguntas }: { jobId: strin
         Confirmo que tengo disponibilidad {horario}.
       </label>
       {err.disponibilidad && <p role="alert" className="text-sm text-red-700">{err.disponibilidad}</p>}
+      <p className="text-xs text-stone-500">
+        Al postular, la empresa verá tu nombre, teléfono, correo y currículum para contactarte. Si retiras la postulación,
+        dejará de verlos.
+      </p>
       {msg && !msg.ok && <p role="alert" className="text-sm text-red-700">{msg.texto}</p>}
       <button disabled={pendiente} className="w-full rounded-lg bg-teal-700 px-4 py-3 font-semibold text-white hover:bg-teal-800 disabled:opacity-60">
         {pendiente ? "Enviando..." : "Postular"}
@@ -113,7 +117,7 @@ export function BotonRetirar({ jobId, applicationId }: { jobId: string; applicat
   }
   return (
     <div className="space-y-2 text-sm">
-      <p>¿Seguro que quieres retirar tu postulación?</p>
+      <p>¿Seguro que quieres retirar tu postulación? La empresa dejará de ver tus datos de contacto.</p>
       <div className="flex gap-2">
         <button
           type="button"

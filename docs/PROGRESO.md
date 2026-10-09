@@ -20,3 +20,10 @@ No verificado aún: migración 5 (Storage y pg_cron) — requiere un proyecto Su
 
 ## Etapa 2 — Siguiente
 Proyecto Next.js, identidad visual, registro/ingreso con selección de rol, perfiles de empresa y trabajador, layout móvil con navegación por rol. Datos demo marcados.
+
+## Avance web (09/10/2026)
+- Registro e ingreso con Supabase Auth; el alta envía `accepted_terms`/`accepted_privacy` como exige `handle_new_user()`.
+- `proxy.ts` refresca la sesión y exige ingreso en `/empresa` y `/trabajador`; `/empresa` además exige rol empresa.
+- Al ingresar se crea el perfil de empresa o trabajador si falta.
+- Publicar turno conectado: categorías y comunas desde la BD, horario en hora de Chile (turnos nocturnos terminan al día siguiente), dirección en `job_post_private` y `publish_job()` decide si queda publicada o en revisión. Cuestionario de modalidad = columnas `q_*`.
+- Pendiente: pregunta de "reemplazo" (relevante por EST) no tiene columna en la BD.

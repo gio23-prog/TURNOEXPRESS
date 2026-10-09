@@ -1,18 +1,6 @@
 import { z } from "zod";
 import { erroresPorCampo } from "./auth";
 
-// TODO: reemplazar por consultas a las tablas `categories` y `comunas` de Supabase.
-export const CATEGORIAS = [
-  "Garzón/a",
-  "Cocina",
-  "Barra",
-  "Aseo",
-  "Bodega y reposición",
-  "Atención en tienda",
-  "Evento",
-] as const;
-export const COMUNAS = ["Santiago", "Providencia", "Las Condes", "Ñuñoa", "Maipú", "La Florida"] as const;
-
 // Mismas 5 preguntas que las columnas q_* de job_posts. El riesgo real lo calcula
 // public.compute_labor_risk() en la base de datos; esto es solo orientativo.
 // `riesgoSi` indica qué respuesta suma un indicio de relación laboral.
@@ -25,14 +13,14 @@ export const PREGUNTAS_MODALIDAD = [
 ] as const;
 
 export type Borrador = {
-  categoria: string;
+  categoria: string; // id de la subcategoría (tabla categories)
   titulo: string;
   descripcion: string;
   cupos: string;
   fecha: string;
   inicio: string;
   termino: string;
-  comuna: string;
+  comuna: string; // id de la comuna (tabla comunas)
   direccion: string;
   urgente: boolean;
   modoPago: "total" | "hora";
@@ -48,7 +36,7 @@ export type Borrador = {
 const hora = z.string().regex(/^\d{2}:\d{2}$/, "Ingresa una hora válida");
 
 export const paso1 = z.object({
-  categoria: z.string().min(1, "Elige una categoría"),
+  categoria: z.string().regex(/^\d+$/, "Elige una categoría"),
   titulo: z.string().trim().min(5, "Escribe un título de al menos 5 caracteres").max(80, "Máximo 80 caracteres"),
   descripcion: z.string().trim().min(20, "Describe el trabajo en al menos 20 caracteres").max(1000, "Máximo 1000 caracteres"),
   cupos: z.number().int("Debe ser un número entero").min(1, "Mínimo 1 cupo").max(20, "Máximo 20 cupos"),
@@ -56,11 +44,11 @@ export const paso1 = z.object({
 
 export const paso2 = z
   .object({
-    fecha: z.string().min(1, "Elige una fecha"),
+    fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Elige una fecha"),
     inicio: hora,
     termino: hora,
-    comuna: z.string().min(1, "Elige una comuna"),
-    direccion: z.string().trim().min(5, "Escribe la dirección exacta"),
+    comuna: z.string().regex(/^\d+$/, "Elige una comuna"),
+    direccion: z.string().trim().min(5, "Escribe la dirección exacta").max(200, "Máximo 200 caracteres"),
   })
   .refine((d) => d.inicio !== d.termino, { message: "El término no puede ser igual al inicio", path: ["termino"] });
 

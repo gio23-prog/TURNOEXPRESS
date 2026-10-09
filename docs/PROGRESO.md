@@ -81,3 +81,11 @@ Proyecto Next.js, identidad visual, registro/ingreso con selección de rol, perf
 - Migración 13: la revisión por "pago por hora alto" queda desactivada (platform_settings.max_hourly_review_clp = 0) y es configurable.
 - El pago sigue debiendo ser mayor a $0 (no se permite trabajo sin pago).
 - 141 pruebas de base de datos pasando.
+
+## Estado de postulaciones (trabajador y empresa) ✅ (09/10/2026)
+- Migración 14: job_applicant_counts() para mostrar cuántos postularon.
+- /trabajador/postulaciones: pestañas (Todas, En proceso, Confirmadas, Finalizadas, No seleccionadas), estado, tiempo y anillo de avance.
+- Detalle del turno: línea de estado (Postulado → Perfil visto → Preseleccionado → Oferta recibida → Turno confirmado → Finalizado), aceptar/rechazar oferta y dirección al confirmar.
+- /empresa/publicaciones y /empresa/publicaciones/[id]: turnos con conteos; postulantes con respuestas, "No cumple requisito", preseleccionar, descartar y enviar oferta. Al abrir la lista, los nuevos pasan a "Perfil visto".
+- Encabezado según rol. 143 pruebas de base de datos pasando.
+- Pendiente: finalización del servicio, evaluaciones y boletas en pantalla; panel de administración.

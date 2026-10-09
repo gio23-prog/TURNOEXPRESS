@@ -122,6 +122,9 @@ export default function FormularioPublicar({
           {msg.estado === "en_revision" ? "Turno en revisión" : "Turno publicado"}
         </h1>
         <p className="mt-2 text-stone-700">{msg.texto}</p>
+        <Link href="/empresa/publicaciones" className="mt-6 mr-4 inline-block rounded-lg bg-teal-700 px-4 py-2.5 font-semibold text-white hover:bg-teal-800">
+          Ver mis turnos
+        </Link>
         <Link href="/empresa/publicar" onClick={() => { setMsg(null); setD(inicial); setPaso(0); }} className="mt-6 inline-block font-medium text-teal-800 underline">
           Publicar otro turno
         </Link>

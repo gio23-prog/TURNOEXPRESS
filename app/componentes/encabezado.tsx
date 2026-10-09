@@ -22,18 +22,23 @@ export default function Encabezado({ sesion }: { sesion: Sesion }) {
           Turno<span className="text-teal-700">Express</span>
         </Link>
         <nav className="flex items-center gap-1 text-sm">
-          <Link href="/trabajos" className="rounded-lg px-2 py-2 font-medium text-stone-700 hover:bg-stone-100 sm:px-3">
+          <Link href="/trabajos" className={`rounded-lg px-2 py-2 font-medium text-stone-700 hover:bg-stone-100 sm:px-3 ${sesion?.role === "empresa" ? "hidden sm:inline" : ""}`}>
             <span className="sm:hidden">Buscar</span>
             <span className="hidden sm:inline">Buscar turnos</span>
           </Link>
+          {sesion?.role === "trabajador" && (
+            <Link href="/trabajador/postulaciones" className="rounded-lg px-2 py-2 font-medium text-stone-700 hover:bg-stone-100 sm:px-3">
+              <span className="sm:hidden">Postulaciones</span>
+              <span className="hidden sm:inline">Mis postulaciones</span>
+            </Link>
+          )}
           {sesion?.role === "empresa" && (
             <>
+              <Link href="/empresa/publicaciones" className="rounded-lg px-2 py-2 font-medium text-stone-700 hover:bg-stone-100 sm:px-3">Mis turnos</Link>
               <Link href="/empresa/publicar" className="hidden rounded-lg px-3 py-2 font-medium text-stone-700 hover:bg-stone-100 sm:inline">
                 Publicar
               </Link>
-              <Link href="/empresa/perfil" className="rounded-lg px-2 py-2 font-medium text-stone-700 hover:bg-stone-100 sm:px-3">
-                Mi empresa
-              </Link>
+              <Link href="/empresa/perfil" className="rounded-lg px-2 py-2 font-medium text-stone-700 hover:bg-stone-100 sm:px-3">Mi empresa</Link>
             </>
           )}
           {sesion ? (
@@ -42,9 +47,7 @@ export default function Encabezado({ sesion }: { sesion: Sesion }) {
             </form>
           ) : (
             <>
-              <Link href="/ingresar" className="rounded-lg px-2 py-2 font-medium text-stone-700 hover:bg-stone-100 sm:px-3">
-                Ingresar
-              </Link>
+              <Link href="/ingresar" className="rounded-lg px-2 py-2 font-medium text-stone-700 hover:bg-stone-100 sm:px-3">Ingresar</Link>
               <Link href="/registro" className="hidden rounded-lg bg-teal-700 px-3 py-2 font-medium text-white hover:bg-teal-800 sm:inline">
                 Crear cuenta
               </Link>

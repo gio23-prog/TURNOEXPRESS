@@ -71,3 +71,32 @@ export async function retirarPostulacion(jobId: string, applicationId: string): 
   revalidatePath(`/trabajos/${jobId}`);
   return { ok: true, mensaje: "Retiraste tu postulación." };
 }
+
+export async function responderOferta(
+  jobId: string,
+  offerId: string,
+  aceptar: boolean,
+  disponibilidad: boolean,
+  justificacionCruce?: string,
+): Promise<Resultado> {
+  if (!esUUID(jobId) || !esUUID(offerId)) return { ok: false, mensaje: "Oferta no encontrada." };
+  if (aceptar && !disponibilidad) {
+    return { ok: false, mensaje: "Confirma que tienes disponibilidad para el turno.", errores: { disponibilidad: "Obligatorio" } };
+  }
+  const supabase = await createClient();
+  const { data: auth } = await supabase.auth.getUser();
+  if (!auth.user) return { ok: false, mensaje: "Tu sesión expiró. Vuelve a ingresar." };
+
+  const justificacion = justificacionCruce?.trim() || null;
+  const { error } = await supabase.rpc("respond_offer", {
+    p_offer: offerId,
+    p_accept: aceptar,
+    p_availability_confirmed: disponibilidad,
+    p_overlap_justification: justificacion,
+  });
+  if (error) return { ok: false, mensaje: mensajeDe(error, "No pudimos registrar tu respuesta. Intenta de nuevo.") };
+
+  revalidatePath(`/trabajos/${jobId}`);
+  revalidatePath("/trabajador/postulaciones");
+  return { ok: true, mensaje: aceptar ? "¡Turno confirmado!" : "Rechazaste la oferta." };
+}

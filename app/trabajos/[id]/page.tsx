@@ -5,18 +5,8 @@ import { clp, diaRelativo, duracion, esUUID, fecha, hora } from "@/lib/formato";
 import Encabezado, { obtenerSesion } from "@/app/componentes/encabezado";
 import { nombreContrato } from "@/lib/reglas-publicacion";
 import { BotonRetirar, FormularioPostular, type PreguntaPublica } from "./postular";
-
-const ESTADO_POSTULACION: Record<string, string> = {
-  pendiente: "Postulación enviada. La empresa aún no la revisa.",
-  en_revision: "La empresa está revisando tu postulación.",
-  preseleccionada: "¡Te preseleccionaron! La empresa podría enviarte una oferta.",
-  oferta_enviada: "Tienes una oferta para este turno.",
-  aceptada: "Aceptaste este turno. Está confirmado.",
-  rechazada: "Tu postulación no fue seleccionada esta vez.",
-  retirada: "Retiraste tu postulación.",
-  finalizada: "Este servicio ya finalizó.",
-  incidencia_reportada: "Hay una incidencia reportada en este turno.",
-};
+import { PanelOferta } from "./oferta";
+import { LineaEstado } from "@/app/componentes/estado";
 
 const ESTADO_PUBLICACION: Record<string, string> = {
   borrador: "Borrador: aún no está publicado.",
@@ -67,7 +57,7 @@ export default async function DetalleTurno({ params }: { params: Promise<{ id: s
     supabase.from("categories").select("name, parent_id").eq("id", t.category_id).single(),
     supabase.from("v_public_businesses").select("trade_name, verification_status, rating_avg, rating_count").eq("user_id", t.business_id).maybeSingle(),
     sesion.role === "trabajador"
-      ? supabase.from("applications").select("id, status").eq("job_id", id).eq("worker_id", sesion.id).maybeSingle()
+      ? supabase.from("applications").select("id, status, created_at, updated_at").eq("job_id", id).eq("worker_id", sesion.id).maybeSingle()
       : Promise.resolve({ data: null }),
     sesion.role === "trabajador" ? supabase.rpc("my_overlapping_bookings", { p_job: id }) : Promise.resolve({ data: [] }),
     supabase.from("job_questions").select("id, position, prompt, kind, options, required").eq("job_id", id).order("position"),
@@ -78,7 +68,22 @@ export default async function DetalleTurno({ params }: { params: Promise<{ id: s
     : null;
 
   const negocio = negocioRes.data;
-  const postulacion = postRes.data as { id: string; status: string } | null;
+  const postulacion = postRes.data as { id: string; status: string; created_at: string; updated_at: string } | null;
+
+  // Oferta abierta (si la hay) y, con el turno confirmado, la dirección exacta.
+  const [ofertaRes, direccionRes] = await Promise.all([
+    postulacion?.status === "oferta_enviada"
+      ? supabase.from("offers").select("id, starts_at, ends_at, pay_type, pay_amount_clp, message, expires_at")
+          .eq("application_id", postulacion.id).eq("status", "enviada").maybeSingle()
+      : Promise.resolve({ data: null }),
+    postulacion && ["aceptada", "finalizada"].includes(postulacion.status)
+      ? supabase.from("job_post_private").select("address_line, access_notes").eq("job_id", id).maybeSingle()
+      : Promise.resolve({ data: null }),
+  ]);
+  const oferta = ofertaRes.data as {
+    id: string; starts_at: string; ends_at: string; pay_type: string; pay_amount_clp: number; message: string | null; expires_at: string;
+  } | null;
+  const direccion = direccionRes.data as { address_line: string; access_notes: string | null } | null;
   const cruces = (cruceRes.data as unknown[] | null)?.length ?? 0;
   const comuna = t.comunas?.name as string | undefined;
   const region = t.comunas?.regions?.name as string | undefined;
@@ -190,12 +195,28 @@ export default async function DetalleTurno({ params }: { params: Promise<{ id: s
               ) : sesion.role === "empresa" ? (
                 <p className="text-sm text-stone-600">Estás viendo este turno con una cuenta de empresa. Para postular necesitas una cuenta de trabajador.</p>
               ) : postulacion ? (
-                <div className="space-y-3">
-                  <p className="font-semibold">Tu postulación</p>
-                  <p className="text-sm text-stone-700">{ESTADO_POSTULACION[postulacion.status] ?? postulacion.status}</p>
+                <div className="space-y-4">
+                  <h2 className="text-lg font-bold">Tu estado en la postulación</h2>
+                  {oferta && (
+                    <PanelOferta jobId={id} offerId={oferta.id} mensaje={oferta.message} hayCruce={cruces > 0}
+                      vence={`${fecha(oferta.expires_at)} a las ${hora(oferta.expires_at)}`}
+                      resumen={`${fecha(oferta.starts_at)}, de ${hora(oferta.starts_at)} a ${hora(oferta.ends_at)}. Pago: ${
+                        oferta.pay_type === "total" ? `${clp(oferta.pay_amount_clp)} en total` : `${clp(oferta.pay_amount_clp)} por hora`}.`} />
+                  )}
+                  {direccion && (
+                    <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
+                      <p className="font-semibold">Dirección del turno</p>
+                      <p className="mt-1">{direccion.address_line}{comuna && `, ${comuna}`}</p>
+                      {direccion.access_notes && <p className="mt-1 text-emerald-900">{direccion.access_notes}</p>}
+                    </div>
+                  )}
+                  <LineaEstado estado={postulacion.status} desde={postulacion.created_at} actualizado={postulacion.updated_at} />
                   {["pendiente", "en_revision", "preseleccionada"].includes(postulacion.status) && (
                     <BotonRetirar jobId={id} applicationId={postulacion.id} />
                   )}
+                  <Link href="/trabajador/postulaciones" className="block text-sm font-medium text-teal-800 underline">
+                    Ver todas mis postulaciones
+                  </Link>
                 </div>
               ) : abierto ? (
                 <>

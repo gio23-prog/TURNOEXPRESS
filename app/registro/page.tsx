@@ -27,6 +27,7 @@ export default function Registro() {
     e.preventDefault();
     iniciar(async () => {
       const r = await registrar(d);
+      if (!r) return; // la acción redirigió (sesión creada sin confirmar correo)
       setErr(r.errores ?? {});
       setMsg({ ok: r.ok, texto: r.mensaje });
     });

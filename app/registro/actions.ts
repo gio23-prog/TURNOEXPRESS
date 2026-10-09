@@ -1,8 +1,9 @@
 "use server";
 
 import { headers } from "next/headers";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { asegurarPerfilDeRol } from "@/lib/supabase/perfil";
+import { asegurarPerfilDeRol, inicioSegunRol } from "@/lib/supabase/perfil";
 import { registroSchema, erroresPorCampo, type RegistroInput } from "@/lib/schemas/auth";
 
 type Resultado = { ok: boolean; mensaje: string; errores?: Record<string, string> };
@@ -30,7 +31,7 @@ export async function registrar(datos: RegistroInput): Promise<Resultado> {
   if (error) {
     return { ok: false, mensaje: "No pudimos crear la cuenta. Revisa los datos o intenta con otro correo." };
   }
-  // Si el proyecto no exige confirmar el correo, la sesión ya existe.
-  if (data.session) await asegurarPerfilDeRol(supabase);
+  // Si el proyecto no exige confirmar el correo, la sesión ya existe: entra directo.
+  if (data.session) redirect(inicioSegunRol(await asegurarPerfilDeRol(supabase)));
   return { ok: true, mensaje: "Cuenta creada. Revisa tu correo para confirmarla y luego ingresa." };
 }

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { asegurarPerfilDeRol } from "@/lib/supabase/perfil";
+import { asegurarPerfilDeRol, inicioSegunRol } from "@/lib/supabase/perfil";
 
 export async function GET(request: NextRequest) {
   // En Codespaces/Vercel la URL pública viene en estas cabeceras.
@@ -13,8 +13,8 @@ export async function GET(request: NextRequest) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
-      await asegurarPerfilDeRol(supabase);
-      return NextResponse.redirect(`${base}/`);
+      const rol = await asegurarPerfilDeRol(supabase);
+      return NextResponse.redirect(`${base}${inicioSegunRol(rol)}`);
     }
   }
   return NextResponse.redirect(`${base}/ingresar`);

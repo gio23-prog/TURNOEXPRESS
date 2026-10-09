@@ -12,17 +12,23 @@ select throws_like(
   '%términos%', 'Registro sin consentimiento es rechazado');
 select throws_like(
   $$ insert into auth.users (id, email, raw_user_meta_data) values
-     (gen_random_uuid(), 'y@test.cl', '{"role":"admin","accepted_terms":true,"accepted_privacy":true}') $$,
+     (gen_random_uuid(), 'y@test.cl', '{"role":"admin","accepted_terms":true,"accepted_privacy":true,"is_adult":true}') $$,
   '%Tipo de cuenta inválido%', 'No se puede auto-registrar como administrador');
 
+select throws_like(
+  $$ insert into auth.users (id, email, raw_user_meta_data) values
+     (gen_random_uuid(), 'm@test.cl', '{"role":"trabajador","full_name":"Menor","accepted_terms":true,"accepted_privacy":true}') $$,
+  '%mayor de 18%', 'Registro sin declarar mayoría de edad es rechazado');
+
 insert into auth.users (id, email, raw_user_meta_data) values
- ('b0000000-0000-0000-0000-000000000001','b1@test.cl','{"role":"empresa","full_name":"Ana Empresa","accepted_terms":true,"accepted_privacy":true}'),
- ('b0000000-0000-0000-0000-000000000002','b2@test.cl','{"role":"empresa","full_name":"Beto Empresa","accepted_terms":true,"accepted_privacy":true}'),
- ('a0000000-0000-0000-0000-000000000001','w1@test.cl','{"role":"trabajador","full_name":"Carla Trabajadora","accepted_terms":true,"accepted_privacy":true}'),
- ('a0000000-0000-0000-0000-000000000002','w2@test.cl','{"role":"trabajador","full_name":"Diego Trabajador","accepted_terms":true,"accepted_privacy":true}'),
- ('ad000000-0000-0000-0000-000000000001','admin@test.cl','{"role":"trabajador","full_name":"Admin","accepted_terms":true,"accepted_privacy":true}');
+ ('b0000000-0000-0000-0000-000000000001','b1@test.cl','{"role":"empresa","full_name":"Ana Empresa","accepted_terms":true,"accepted_privacy":true,"is_adult":true}'),
+ ('b0000000-0000-0000-0000-000000000002','b2@test.cl','{"role":"empresa","full_name":"Beto Empresa","accepted_terms":true,"accepted_privacy":true,"is_adult":true}'),
+ ('a0000000-0000-0000-0000-000000000001','w1@test.cl','{"role":"trabajador","full_name":"Carla Trabajadora","accepted_terms":true,"accepted_privacy":true,"is_adult":true}'),
+ ('a0000000-0000-0000-0000-000000000002','w2@test.cl','{"role":"trabajador","full_name":"Diego Trabajador","accepted_terms":true,"accepted_privacy":true,"is_adult":true}'),
+ ('ad000000-0000-0000-0000-000000000001','admin@test.cl','{"role":"trabajador","full_name":"Admin","accepted_terms":true,"accepted_privacy":true,"is_adult":true}');
 insert into admin_roles (user_id, level) values ('ad000000-0000-0000-0000-000000000001','superadmin');
 select is((select count(*)::int from profiles), 5, 'Se crean perfiles al registrarse');
+select is((select count(*)::int from profiles where adult_confirmed_at is null), 0, 'Se registra la confirmación de mayoría de edad');
 
 select ok(rut_is_valid('11.111.111-1'), 'RUT válido aceptado');
 select ok(not rut_is_valid('11.111.111-2'), 'RUT con DV incorrecto rechazado');

@@ -1,26 +1,32 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/*
+ * Paleta Turnoexpress. Úsala con las clases de Tailwind que genera @theme:
+ * bg-marino, text-turquesa-oscuro, border-borde, ring-turquesa, etc.
+ *
+ * #0D9488 (turquesa) tiene contraste 3,7:1 con blanco: sirve para acentos
+ * (foco, bordes activos, barras), no para texto. Para botones y enlaces se usa
+ * turquesa-oscuro (#0F766E, 5,5:1), que cumple WCAG AA.
+ */
+@theme {
+  --color-marino: #0f172a;
+  --color-turquesa: #0d9488;
+  --color-turquesa-oscuro: #0f766e;
+  --color-turquesa-hover: #115e59;
+  --color-turquesa-claro: #f0fdfa;
+  --color-fondo: #ffffff;
+  --color-fondo-suave: #f8fafc;
+  --color-borde: #e2e8f0;
+  --color-borde-fuerte: #cbd5e1;
+  --color-texto-suave: #475569;
+  --color-texto-tenue: #64748b;
+
+  --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* Fondo siempre blanco: el logo (figura y "Turno" en azul marino) no se lee sobre fondo oscuro. */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--color-fondo);
+  color: var(--color-marino);
 }

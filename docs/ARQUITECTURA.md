@@ -10,7 +10,7 @@ Consecuencia práctica: la capa de datos, permisos y reglas de negocio está **c
 
 | Capa | Tecnología | Motivo |
 |---|---|---|
-| Frontend | Next.js 15 (App Router) + TypeScript | SSR para SEO de la landing y ofertas; Server Actions para mutaciones |
+| Frontend | Next.js 16 (App Router) + TypeScript | SSR para SEO de la landing y ofertas; Server Actions para mutaciones |
 | UI | Tailwind CSS + shadcn/ui (Radix) | Componentes accesibles, sin dependencia visual de terceros |
 | Datos | PostgreSQL 16 (Supabase) | Restricciones fuertes, exclusión por rangos horarios, RLS |
 | Autenticación | Supabase Auth (correo + contraseña, OTP por correo) | Sesiones seguras con cookies httpOnly vía `@supabase/ssr` |

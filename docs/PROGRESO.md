@@ -25,3 +25,9 @@ Proyecto Next.js, identidad visual, registro/ingreso con selección de rol, perf
 - Migración 6: las 16 regiones (ordenadas norte → sur) y las 346 comunas de Chile, todas activas. Probada en PostgreSQL 16; las 81 pruebas siguen pasando.
 - Formulario de publicación: se elige región y luego comuna.
 - Pendiente: coordenadas por comuna para el filtro "cerca de mí".
+
+## Portada y buscador ✅ (09/10/2026)
+- Portada de TurnoExpress con accesos según sesión y cierre de sesión.
+- /trabajos: búsqueda con filtros (región, comuna, rubro, fecha, pago mínimo por hora, texto), atajos (hoy, mañana, fin de semana, pocas horas, jornada completa), orden y paginación. Usa la RPC search_jobs.
+- /trabajos/[id]: detalle del turno (sin dirección exacta), estado de la postulación propia, aviso de cruce de horario, postular y retirar postulación (RPC apply_to_job / withdraw_application).
+- Al postular por primera vez se crea un perfil profesional mínimo (nombre + inicial del apellido). Falta la pantalla de perfil completo.

@@ -1,9 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { cerrarSesion } from "./salir/actions";
-
-const clp = (n: number) =>
-  new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(n);
+import { clp } from "@/lib/formato";
+import Encabezado, { obtenerSesion } from "./componentes/encabezado";
 
 const PASOS_EMPRESA = [
   ["Publica el turno", "Fecha, horario, comuna y pago. Toma un par de minutos y ves el valor por hora antes de publicar."],
@@ -19,50 +17,20 @@ const PASOS_TRABAJADOR = [
 
 export default async function Inicio() {
   const supabase = await createClient();
-  const { data: auth } = await supabase.auth.getUser();
-
-  const [perfilRes, catsRes, regRes, comRes] = await Promise.all([
-    auth.user
-      ? supabase.from("profiles").select("role, full_name").eq("id", auth.user.id).single()
-      : Promise.resolve({ data: null }),
+  const [perfil, catsRes, regRes, comRes] = await Promise.all([
+    obtenerSesion(),
     supabase.from("categories").select("id, name").is("parent_id", null).eq("active", true).order("sort_order"),
     supabase.from("regions").select("id", { count: "exact", head: true }).eq("active", true),
     supabase.from("comunas").select("id", { count: "exact", head: true }).eq("active", true),
   ]);
 
-  const perfil = perfilRes.data as { role: "empresa" | "trabajador"; full_name: string } | null;
   const categorias = catsRes.data ?? [];
   const regiones = regRes.count ?? 0;
   const comunas = comRes.count ?? 0;
-  const primerNombre = perfil?.full_name.split(" ")[0];
 
   return (
     <div className="min-h-full bg-stone-50 text-stone-900">
-      {/* Encabezado */}
-      <header className="border-b border-stone-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-3">
-          <Link href="/" className="text-xl font-extrabold tracking-tight" aria-label="TurnoExpress, inicio">
-            Turno<span className="text-teal-700">Express</span>
-          </Link>
-          {perfil ? (
-            <div className="flex items-center gap-3 text-sm">
-              <span className="hidden text-stone-600 sm:inline">Hola, {primerNombre}</span>
-              <form action={cerrarSesion}>
-                <button className="rounded-lg px-3 py-2 font-medium text-stone-700 hover:bg-stone-100">Cerrar sesión</button>
-              </form>
-            </div>
-          ) : (
-            <nav className="flex items-center gap-2 text-sm">
-              <Link href="/ingresar" className="rounded-lg px-3 py-2 font-medium text-stone-700 hover:bg-stone-100">
-                Ingresar
-              </Link>
-              <Link href="/registro" className="rounded-lg bg-teal-700 px-3 py-2 font-medium text-white hover:bg-teal-800">
-                Crear cuenta
-              </Link>
-            </nav>
-          )}
-        </div>
-      </header>
+      <Encabezado sesion={perfil} />
 
       <main>
         {/* Portada */}
@@ -83,9 +51,9 @@ export default async function Inicio() {
                     Publicar un turno
                   </Link>
                 ) : (
-                  <p className="rounded-xl border border-teal-200 bg-teal-50 px-4 py-3 text-sm text-teal-900">
-                    El buscador de turnos estará disponible muy pronto.
-                  </p>
+                  <Link href="/trabajos" className="rounded-xl bg-teal-700 px-6 py-3 text-center font-semibold text-white hover:bg-teal-800">
+                    Buscar turnos
+                  </Link>
                 )}
               </div>
             ) : (
@@ -93,7 +61,7 @@ export default async function Inicio() {
                 <Link href="/registro" className="rounded-xl bg-teal-700 px-6 py-3 text-center font-semibold text-white hover:bg-teal-800">
                   Necesito personal
                 </Link>
-                <Link href="/registro" className="rounded-xl border border-stone-300 bg-white px-6 py-3 text-center font-semibold text-stone-800 hover:border-teal-700">
+                <Link href="/trabajos" className="rounded-xl border border-stone-300 bg-white px-6 py-3 text-center font-semibold text-stone-800 hover:border-teal-700">
                   Busco turnos
                 </Link>
               </div>

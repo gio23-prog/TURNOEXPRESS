@@ -3,9 +3,10 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { ingresar } from "./actions";
+import { LogoCompleto } from "@/components/Logo";
 
 const input =
-  "w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 focus:outline-none focus:ring-2 focus:ring-teal-700";
+  "w-full rounded-lg border border-borde-fuerte bg-white px-3 py-2 text-marino focus:outline-none focus:ring-2 focus:ring-turquesa";
 
 export default function Ingresar() {
   const [email, setEmail] = useState("");
@@ -27,25 +28,28 @@ export default function Ingresar() {
 
   return (
     <main className="mx-auto max-w-md p-6">
-      <h1 className="text-2xl font-semibold text-stone-900">Ingresar</h1>
+      <Link href="/" aria-label="Turnoexpress, ir al inicio" className="mb-8 flex justify-center">
+        <LogoCompleto />
+      </Link>
+      <h1 className="text-2xl font-semibold text-marino">Ingresar</h1>
       <form onSubmit={enviar} className="mt-6 space-y-4">
         <label className="block">
-          <span className="mb-1 block text-sm font-medium text-stone-700">Correo</span>
+          <span className="mb-1 block text-sm font-medium text-texto-suave">Correo</span>
           <input className={input} type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
           {err.email && <span role="alert" className="mt-1 block text-sm text-red-700">{err.email}</span>}
         </label>
         <label className="block">
-          <span className="mb-1 block text-sm font-medium text-stone-700">Contraseña</span>
+          <span className="mb-1 block text-sm font-medium text-texto-suave">Contraseña</span>
           <input className={input} type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
           {err.password && <span role="alert" className="mt-1 block text-sm text-red-700">{err.password}</span>}
         </label>
         {msg && <p role="alert" className="text-sm text-red-700">{msg}</p>}
-        <button disabled={pendiente} className="w-full rounded-lg bg-teal-700 px-4 py-3 font-medium text-white hover:bg-teal-800 disabled:opacity-60">
+        <button disabled={pendiente} className="w-full rounded-lg bg-turquesa-oscuro px-4 py-3 font-medium text-white hover:bg-turquesa-hover disabled:opacity-60">
           {pendiente ? "Ingresando..." : "Ingresar"}
         </button>
       </form>
-      <p className="mt-6 text-sm text-stone-600">
-        ¿No tienes cuenta? <Link href="/registro" className="font-medium text-teal-800 underline">Crear cuenta</Link>
+      <p className="mt-6 text-sm text-texto-suave">
+        ¿No tienes cuenta? <Link href="/registro" className="font-medium text-turquesa-oscuro underline">Crear cuenta</Link>
       </p>
     </main>
   );

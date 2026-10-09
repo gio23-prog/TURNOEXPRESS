@@ -26,12 +26,12 @@ const clp = (n: number) =>
   new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 }).format(n);
 
 const input =
-  "w-full rounded-lg border border-stone-300 bg-white px-3 py-2 text-stone-900 focus:outline-none focus:ring-2 focus:ring-teal-700";
+  "w-full rounded-lg border border-borde-fuerte bg-white px-3 py-2 text-marino focus:outline-none focus:ring-2 focus:ring-turquesa";
 
 function Campo({ label, error, children }: { label: string; error?: string; children: ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-sm font-medium text-stone-700">{label}</span>
+      <span className="mb-1 block text-sm font-medium text-texto-suave">{label}</span>
       {children}
       {error && <span role="alert" className="mt-1 block text-sm text-red-700">{error}</span>}
     </label>
@@ -49,7 +49,7 @@ function SiNo({ valor, onChange }: { valor?: boolean; onChange: (v: boolean) => 
           aria-checked={valor === v}
           onClick={() => onChange(v)}
           className={`min-w-16 rounded-lg border px-4 py-2 text-sm font-medium ${
-            valor === v ? "border-teal-700 bg-teal-700 text-white" : "border-stone-300 bg-white text-stone-700"
+            valor === v ? "border-turquesa-oscuro bg-turquesa-oscuro text-white" : "border-borde-fuerte bg-white text-texto-suave"
           }`}
         >
           {v ? "Sí" : "No"}
@@ -100,12 +100,12 @@ export default function Formulario({ categorias, comunas }: { categorias: Catego
   if (msg?.ok) {
     return (
       <main className="mx-auto max-w-xl p-6">
-        <h1 className="text-2xl font-semibold text-stone-900">Turno enviado</h1>
-        <p className="mt-2 text-stone-700">{msg.texto}</p>
+        <h1 className="text-2xl font-semibold text-marino">Turno enviado</h1>
+        <p className="mt-2 text-texto-suave">{msg.texto}</p>
         <button
           type="button"
           onClick={() => { setD(inicial); setBorradorId(undefined); setErr({}); setMsg(null); setPaso(0); }}
-          className="mt-6 inline-block font-medium text-teal-800 underline"
+          className="mt-6 inline-block font-medium text-turquesa-oscuro underline"
         >
           Publicar otro turno
         </button>
@@ -114,12 +114,12 @@ export default function Formulario({ categorias, comunas }: { categorias: Catego
   }
 
   return (
-    <main className="mx-auto max-w-xl bg-stone-50 p-4 pb-24 sm:p-6">
+    <main className="mx-auto max-w-xl p-4 pb-24 sm:p-6">
       <header className="mb-6">
-        <h1 className="text-2xl font-semibold text-stone-900">Publicar un turno</h1>
-        <p className="mt-1 text-sm text-stone-600">Paso {paso + 1} de {PASOS.length}: {PASOS[paso]}</p>
-        <div className="mt-3 h-1.5 rounded-full bg-stone-200" aria-hidden>
-          <div className="h-full rounded-full bg-teal-700 transition-all" style={{ width: `${((paso + 1) / PASOS.length) * 100}%` }} />
+        <h1 className="text-2xl font-semibold text-marino">Publicar un turno</h1>
+        <p className="mt-1 text-sm text-texto-suave">Paso {paso + 1} de {PASOS.length}: {PASOS[paso]}</p>
+        <div className="mt-3 h-1.5 rounded-full bg-borde" aria-hidden>
+          <div className="h-full rounded-full bg-turquesa transition-all" style={{ width: `${((paso + 1) / PASOS.length) * 100}%` }} />
         </div>
       </header>
 
@@ -164,7 +164,7 @@ export default function Formulario({ categorias, comunas }: { categorias: Catego
                 <input className={input} type="time" value={d.termino} onChange={(e) => set("termino", e.target.value)} />
               </Campo>
             </div>
-            <p className="text-sm text-stone-600">Duración: {Math.floor(mins / 60)} h {mins % 60} min</p>
+            <p className="text-sm text-texto-suave">Duración: {Math.floor(mins / 60)} h {mins % 60} min</p>
             <Campo label="Comuna" error={err.comuna}>
               <select className={input} value={d.comuna} onChange={(e) => set("comuna", e.target.value)}>
                 <option value="">Elige una comuna</option>
@@ -174,7 +174,7 @@ export default function Formulario({ categorias, comunas }: { categorias: Catego
             <Campo label="Dirección exacta (solo la verá quien sea contratado)" error={err.direccion}>
               <input className={input} value={d.direccion} onChange={(e) => set("direccion", e.target.value)} />
             </Campo>
-            <label className="flex items-center gap-2 text-sm text-stone-700">
+            <label className="flex items-center gap-2 text-sm text-texto-suave">
               <input type="checkbox" checked={d.urgente} onChange={(e) => set("urgente", e.target.checked)} />
               Es urgente (necesito confirmar hoy)
             </label>
@@ -184,8 +184,8 @@ export default function Formulario({ categorias, comunas }: { categorias: Catego
         {paso === 2 && (
           <>
             <fieldset>
-              <legend className="mb-1 text-sm font-medium text-stone-700">¿Cómo quieres indicar el pago?</legend>
-              <div className="flex gap-4 text-sm text-stone-700">
+              <legend className="mb-1 text-sm font-medium text-texto-suave">¿Cómo quieres indicar el pago?</legend>
+              <div className="flex gap-4 text-sm text-texto-suave">
                 <label className="flex items-center gap-2"><input type="radio" checked={d.modoPago === "total"} onChange={() => set("modoPago", "total")} /> Monto total</label>
                 <label className="flex items-center gap-2"><input type="radio" checked={d.modoPago === "hora"} onChange={() => set("modoPago", "hora")} /> Valor por hora</label>
               </div>
@@ -194,7 +194,7 @@ export default function Formulario({ categorias, comunas }: { categorias: Catego
               <input className={input} type="number" inputMode="numeric" min={0} value={d.monto} onChange={(e) => set("monto", e.target.value)} />
             </Campo>
             {pago.total > 0 && (
-              <p className="rounded-lg bg-teal-50 p-3 text-sm text-teal-900">
+              <p className="rounded-lg bg-turquesa-claro p-3 text-sm text-turquesa-oscuro">
                 Total estimado {clp(pago.total)} y {clp(pago.valorHora)} por hora, en {Math.floor(mins / 60)} h {mins % 60} min.
               </p>
             )}
@@ -204,10 +204,10 @@ export default function Formulario({ categorias, comunas }: { categorias: Catego
             <Campo label="Vestimenta (opcional)" error={err.vestimenta}>
               <input className={input} value={d.vestimenta} onChange={(e) => set("vestimenta", e.target.value)} placeholder="Ej: pantalón negro y zapatos cerrados" />
             </Campo>
-            <label className="flex items-center gap-2 text-sm text-stone-700">
+            <label className="flex items-center gap-2 text-sm text-texto-suave">
               <input type="checkbox" checked={d.alimentacion} onChange={(e) => set("alimentacion", e.target.checked)} /> Incluye alimentación
             </label>
-            <label className="flex items-center gap-2 text-sm text-stone-700">
+            <label className="flex items-center gap-2 text-sm text-texto-suave">
               <input type="checkbox" checked={d.transporte} onChange={(e) => set("transporte", e.target.checked)} /> Incluye transporte
             </label>
           </>
@@ -215,18 +215,18 @@ export default function Formulario({ categorias, comunas }: { categorias: Catego
 
         {paso === 3 && (
           <>
-            <p className="text-sm text-stone-600">
+            <p className="text-sm text-texto-suave">
               Estas preguntas nos ayudan a evaluar si el trabajo se parece más a un servicio independiente o a una relación laboral.
             </p>
             {PREGUNTAS_MODALIDAD.map((p) => (
-              <div key={p.id} className="rounded-lg border border-stone-200 bg-white p-3">
-                <p className="text-stone-900">{p.texto}</p>
+              <div key={p.id} className="rounded-lg border border-borde bg-white p-3">
+                <p className="text-marino">{p.texto}</p>
                 <SiNo valor={d.respuestas[p.id]} onChange={(v) => set("respuestas", { ...d.respuestas, [p.id]: v })} />
                 {err[p.id] && <p role="alert" className="mt-1 text-sm text-red-700">{err[p.id]}</p>}
               </div>
             ))}
-            <div className="rounded-lg border border-stone-200 bg-white p-3">
-              <p className="text-stone-900">{PREGUNTA_REEMPLAZO.texto}</p>
+            <div className="rounded-lg border border-borde bg-white p-3">
+              <p className="text-marino">{PREGUNTA_REEMPLAZO.texto}</p>
               <SiNo
                 valor={d.respuestas[PREGUNTA_REEMPLAZO.id]}
                 onChange={(v) => set("respuestas", { ...d.respuestas, [PREGUNTA_REEMPLAZO.id]: v })}
@@ -244,7 +244,7 @@ export default function Formulario({ categorias, comunas }: { categorias: Catego
 
         {paso === 4 && (
           <>
-            <dl className="divide-y divide-stone-200 rounded-lg border border-stone-200 bg-white text-sm">
+            <dl className="divide-y divide-borde rounded-lg border border-borde bg-white text-sm">
               {[
                 ["Título", d.titulo],
                 ["Categoría", subcategoria?.nombre ?? ""],
@@ -256,8 +256,8 @@ export default function Formulario({ categorias, comunas }: { categorias: Catego
                 ["Condiciones", [d.alimentacion && "alimentación", d.transporte && "transporte"].filter(Boolean).join(" y ") || "Sin extras"],
               ].map(([k, v]) => (
                 <div key={k as string} className="flex justify-between gap-4 p-3">
-                  <dt className="text-stone-600">{k}</dt>
-                  <dd className="text-right font-medium text-stone-900">{v}</dd>
+                  <dt className="text-texto-suave">{k}</dt>
+                  <dd className="text-right font-medium text-marino">{v}</dd>
                 </div>
               ))}
             </dl>
@@ -277,26 +277,26 @@ export default function Formulario({ categorias, comunas }: { categorias: Catego
                 {err.confirmaAdvertencia && <p role="alert" className="mt-1 text-red-700">{err.confirmaAdvertencia}</p>}
               </div>
             ) : (
-              <p className="text-sm text-stone-600">Riesgo de modalidad {riesgo}. El resultado final lo confirma el sistema al publicar.</p>
+              <p className="text-sm text-texto-suave">Riesgo de modalidad {riesgo}. El resultado final lo confirma el sistema al publicar.</p>
             )}
             {msg && !msg.ok && <p role="alert" className="text-sm text-red-700">{msg.texto}</p>}
           </>
         )}
       </div>
 
-      <div className="fixed inset-x-0 bottom-0 border-t border-stone-200 bg-white/95 p-3 backdrop-blur">
+      <div className="fixed inset-x-0 bottom-0 border-t border-borde bg-white/95 p-3 backdrop-blur">
         <div className="mx-auto flex max-w-xl gap-3">
           {paso > 0 && (
-            <button type="button" onClick={() => { setErr({}); setPaso((p) => p - 1); }} className="rounded-lg border border-stone-300 px-4 py-3 font-medium text-stone-700">
+            <button type="button" onClick={() => { setErr({}); setPaso((p) => p - 1); }} className="rounded-lg border border-borde-fuerte px-4 py-3 font-medium text-texto-suave">
               Atrás
             </button>
           )}
           {paso < PASOS.length - 1 ? (
-            <button type="button" onClick={siguiente} className="flex-1 rounded-lg bg-teal-700 px-4 py-3 font-medium text-white hover:bg-teal-800">
+            <button type="button" onClick={siguiente} className="flex-1 rounded-lg bg-turquesa-oscuro px-4 py-3 font-medium text-white hover:bg-turquesa-hover">
               Continuar
             </button>
           ) : (
-            <button type="button" onClick={publicar} disabled={pendiente} className="flex-1 rounded-lg bg-teal-700 px-4 py-3 font-medium text-white hover:bg-teal-800 disabled:opacity-60">
+            <button type="button" onClick={publicar} disabled={pendiente} className="flex-1 rounded-lg bg-turquesa-oscuro px-4 py-3 font-medium text-white hover:bg-turquesa-hover disabled:opacity-60">
               {pendiente ? "Publicando..." : "Publicar turno"}
             </button>
           )}

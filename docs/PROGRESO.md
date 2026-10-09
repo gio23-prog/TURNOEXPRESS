@@ -29,3 +29,8 @@ Proyecto Next.js, identidad visual, registro/ingreso con selección de rol, perf
 - Pendiente: pregunta de "reemplazo" (relevante por EST) no tiene columna en la BD.
 - Migración 6: registro exige mayoría de edad (`is_adult`, guarda `profiles.adult_confirmed_at`) y `job_posts.q_replaces_staff` (informativa, no altera el riesgo). Pruebas pgTAP: 83/83.
 - Landing, metadatos en español, README, `.env.example` (`NEXT_PUBLIC_SITE_URL` para el correo de confirmación) y cabeceras de seguridad básicas. Pendiente: CSP y límites de frecuencia.
+
+## Identidad visual (09/10/2026)
+- Logos en `public/logo/` (originales recortados con márgenes uniformes; `logo-sin-eslogan.png` regenerado desde `logo-completo.png` porque el entregado venía cortado abajo; íconos cuadrados desde `icon-512.png`). `app/favicon.ico`, íconos PNG y `app/manifest.ts`.
+- Paleta en `app/globals.css` (`@theme`): marino #0F172A, turquesa #0D9488 (acentos), turquesa-oscuro #0F766E (botones y enlaces, contraste AA). Fondo blanco fijo.
+- Encabezado con menú móvil (`components/`); ingreso y registro con logo completo. Páginas con encabezado en el grupo `app/(sitio)/` (las URL no cambian).

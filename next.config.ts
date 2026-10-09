@@ -10,6 +10,8 @@ const seguridad = [
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["*.github.dev"],
+  // 100 se usa solo en los logos (components/Logo.tsx).
+  images: { qualities: [75, 100] },
   headers: async () => [{ source: "/:path*", headers: seguridad }],
 };
 

@@ -1,36 +1,41 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TurnoExpress
 
-## Getting Started
+Marketplace de turnos por horas para la Región Metropolitana (nombre provisional).
+Next.js 16 (App Router) + Supabase (Postgres, Auth, Storage).
 
-First, run the development server:
+- Arquitectura y decisiones: [`docs/ARQUITECTURA.md`](docs/ARQUITECTURA.md)
+- Riesgos legales y tributarios pendientes: [`docs/CUMPLIMIENTO_LEGAL.md`](docs/CUMPLIMIENTO_LEGAL.md)
+- Bitácora de avance: [`docs/PROGRESO.md`](docs/PROGRESO.md)
+
+## Puesta en marcha
+
+1. Crea un proyecto en Supabase y aplica las migraciones de `supabase/migrations/` en orden
+   (`supabase db push` con la CLI, o pegándolas en el editor SQL).
+2. Copia `.env.example` a `.env.local` y completa las variables.
+3. En Supabase → Authentication → URL Configuration agrega `<tu URL>/auth/callback` como URL de redirección.
+4. Instala y levanta:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Comandos
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Comando | Qué hace |
+|---|---|
+| `npm run dev` | Servidor de desarrollo en http://localhost:3000 |
+| `npm run build` | Compilación de producción |
+| `npm run lint` | ESLint |
+| `./scripts/test-db-local.sh` | Pruebas pgTAP del esquema contra un PostgreSQL 16 local (requiere pgTAP y btree_gist) |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Estructura
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Ruta | Contenido |
+|---|---|
+| `app/` | Páginas y Server Actions (`registro`, `ingresar`, `empresa/publicar`, `auth/callback`) |
+| `proxy.ts` | Refresca la sesión y exige ingreso en `/empresa` y `/trabajador` |
+| `lib/schemas/` | Validación Zod compartida entre formulario y servidor |
+| `lib/supabase/` | Cliente de servidor y utilidades de perfil |
+| `supabase/migrations/` | Esquema, RLS y reglas de negocio (la base es la autoridad) |
+| `supabase/tests/` | Pruebas pgTAP |

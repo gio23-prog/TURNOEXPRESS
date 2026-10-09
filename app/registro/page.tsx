@@ -15,7 +15,7 @@ const TIPOS = [
 
 export default function Registro() {
   const [paso, setPaso] = useState<1 | 2>(1);
-  const [d, setD] = useState<RegistroInput>({ tipo: "trabajador", nombre: "", email: "", password: "", consentimiento: false });
+  const [d, setD] = useState<RegistroInput>({ tipo: "trabajador", nombre: "", email: "", password: "", consentimiento: false, mayorEdad: false });
   const [err, setErr] = useState<Record<string, string>>({});
   const [msg, setMsg] = useState<{ ok: boolean; texto: string } | null>(null);
   const [pendiente, iniciar] = useTransition();
@@ -89,6 +89,12 @@ export default function Registro() {
             Acepto los términos de uso y la política de privacidad.
           </label>
           {err.consentimiento && <p role="alert" className="text-sm text-red-700">{err.consentimiento}</p>}
+
+          <label className="flex items-start gap-2 text-sm text-stone-700">
+            <input type="checkbox" className="mt-1" checked={d.mayorEdad} onChange={(e) => set("mayorEdad", e.target.checked)} />
+            Declaro ser mayor de 18 años.
+          </label>
+          {err.mayorEdad && <p role="alert" className="text-sm text-red-700">{err.mayorEdad}</p>}
 
           {msg && !msg.ok && <p role="alert" className="text-sm text-red-700">{msg.texto}</p>}
 

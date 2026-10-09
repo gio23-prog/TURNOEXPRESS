@@ -3,6 +3,7 @@
 import { useState, useTransition, type ReactNode } from "react";
 import {
   PREGUNTAS_MODALIDAD,
+  PREGUNTA_REEMPLAZO,
   calcularDuracion,
   calcularPago,
   nivelRiesgo,
@@ -224,6 +225,20 @@ export default function Formulario({ categorias, comunas }: { categorias: Catego
                 {err[p.id] && <p role="alert" className="mt-1 text-sm text-red-700">{err[p.id]}</p>}
               </div>
             ))}
+            <div className="rounded-lg border border-stone-200 bg-white p-3">
+              <p className="text-stone-900">{PREGUNTA_REEMPLAZO.texto}</p>
+              <SiNo
+                valor={d.respuestas[PREGUNTA_REEMPLAZO.id]}
+                onChange={(v) => set("respuestas", { ...d.respuestas, [PREGUNTA_REEMPLAZO.id]: v })}
+              />
+              {err[PREGUNTA_REEMPLAZO.id] && <p role="alert" className="mt-1 text-sm text-red-700">{err[PREGUNTA_REEMPLAZO.id]}</p>}
+              {d.respuestas[PREGUNTA_REEMPLAZO.id] && (
+                <p className="mt-2 text-sm text-amber-900">
+                  Cubrir a personal ausente con trabajadores de terceros es una actividad regulada en Chile (Empresas de
+                  Servicios Transitorios). Si la persona trabajará bajo tus instrucciones, revisa la guía de modalidad.
+                </p>
+              )}
+            </div>
           </>
         )}
 

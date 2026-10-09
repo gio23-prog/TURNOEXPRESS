@@ -59,6 +59,7 @@ export async function publicarTurno(datos: Borrador, borradorId?: string): Promi
     q_imposed_schedule: r.q_imposed_schedule,
     q_continuous_instructions: r.q_continuous_instructions,
     q_core_recurring: r.q_core_recurring,
+    q_replaces_staff: r.q_replaces_staff,
     labor_warning_ack_at: requiereAdvertencia(r) && datos.confirmaAdvertencia ? new Date().toISOString() : null,
   };
 

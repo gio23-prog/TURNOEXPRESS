@@ -12,6 +12,13 @@ export const PREGUNTAS_MODALIDAD = [
   { id: "q_core_recurring", texto: "¿Es una tarea habitual del negocio que se repite con frecuencia?", riesgoSi: true },
 ] as const;
 
+// Pregunta informativa (columna q_replaces_staff): no suma al riesgo, pero reemplazar
+// personal ausente es el supuesto típico de las Empresas de Servicios Transitorios.
+export const PREGUNTA_REEMPLAZO = {
+  id: "q_replaces_staff",
+  texto: "¿El turno reemplaza a alguien de tu equipo que no puede asistir?",
+} as const;
+
 export type Borrador = {
   categoria: string; // id de la subcategoría (tabla categories)
   titulo: string;
@@ -29,7 +36,7 @@ export type Borrador = {
   vestimenta: string;
   alimentacion: boolean;
   transporte: boolean;
-  respuestas: Record<string, boolean | undefined>;
+  respuestas: Record<string, boolean | undefined>; // q_* de modalidad + q_replaces_staff
   confirmaAdvertencia: boolean;
 };
 
@@ -90,7 +97,7 @@ export function requiereAdvertencia(r: Borrador["respuestas"]): boolean {
 export function validarPaso(n: number, d: Borrador): Record<string, string> {
   if (n === 3) {
     const e: Record<string, string> = {};
-    for (const p of PREGUNTAS_MODALIDAD) if (d.respuestas[p.id] === undefined) e[p.id] = "Responde sí o no";
+    for (const p of [...PREGUNTAS_MODALIDAD, PREGUNTA_REEMPLAZO]) if (d.respuestas[p.id] === undefined) e[p.id] = "Responde sí o no";
     return e;
   }
   const res =

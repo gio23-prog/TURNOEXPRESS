@@ -27,3 +27,5 @@ Proyecto Next.js, identidad visual, registro/ingreso con selección de rol, perf
 - Al ingresar se crea el perfil de empresa o trabajador si falta.
 - Publicar turno conectado: categorías y comunas desde la BD, horario en hora de Chile (turnos nocturnos terminan al día siguiente), dirección en `job_post_private` y `publish_job()` decide si queda publicada o en revisión. Cuestionario de modalidad = columnas `q_*`.
 - Pendiente: pregunta de "reemplazo" (relevante por EST) no tiene columna en la BD.
+- Migración 6: registro exige mayoría de edad (`is_adult`, guarda `profiles.adult_confirmed_at`) y `job_posts.q_replaces_staff` (informativa, no altera el riesgo). Pruebas pgTAP: 83/83.
+- Landing, metadatos en español, README, `.env.example` (`NEXT_PUBLIC_SITE_URL` para el correo de confirmación) y cabeceras de seguridad básicas. Pendiente: CSP y límites de frecuencia.

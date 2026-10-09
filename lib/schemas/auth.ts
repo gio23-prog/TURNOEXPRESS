@@ -6,6 +6,7 @@ export const registroSchema = z.object({
   email: z.string().trim().toLowerCase().email("Ingresa un correo válido"),
   password: z.string().min(8, "Mínimo 8 caracteres").max(72, "Máximo 72 caracteres"),
   consentimiento: z.boolean().refine((v) => v === true, "Debes aceptar los términos para continuar"),
+  mayorEdad: z.boolean().refine((v) => v === true, "Debes ser mayor de 18 años para registrarte"),
 });
 
 export const ingresoSchema = z.object({

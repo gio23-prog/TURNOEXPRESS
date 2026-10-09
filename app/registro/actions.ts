@@ -13,7 +13,8 @@ export async function registrar(datos: RegistroInput): Promise<Resultado> {
     return { ok: false, mensaje: "Revisa los campos marcados.", errores: erroresPorCampo(parsed.error.issues) };
   }
   const { email, password, nombre, tipo } = parsed.data;
-  const origin = (await headers()).get("origin") ?? "";
+  // URL pública fija si está configurada; si no, la del navegador que hizo la solicitud.
+  const origin = process.env.NEXT_PUBLIC_SITE_URL ?? (await headers()).get("origin") ?? "";
 
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
@@ -22,7 +23,7 @@ export async function registrar(datos: RegistroInput): Promise<Resultado> {
     options: {
       emailRedirectTo: `${origin}/auth/callback`,
       // Deben coincidir con lo que lee public.handle_new_user() (migración core).
-      data: { full_name: nombre, role: tipo, accepted_terms: true, accepted_privacy: true },
+      data: { full_name: nombre, role: tipo, accepted_terms: true, accepted_privacy: true, is_adult: true },
     },
   });
 

@@ -2,15 +2,14 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { asegurarPerfilDeRol } from "@/lib/supabase/perfil";
+import { mensajeDeError as mensajeBase } from "@/lib/supabase/errores";
 import { diaSiguiente, instanteChile } from "@/lib/fechas";
 import { requiereAdvertencia, validarTodo, type Borrador } from "@/lib/schemas/publicar";
 
 type Resultado = { ok: boolean; mensaje: string; errores?: Record<string, string>; borradorId?: string };
 
-// Las RPC lanzan P0001/P0002 con mensajes pensados para el usuario; el resto se oculta.
-function mensajeDeError(e: { code?: string; message: string }) {
-  return e.code === "P0001" || e.code === "P0002" ? e.message : "No pudimos publicar el turno. Intenta de nuevo.";
-}
+const mensajeDeError = (e: { code?: string; message: string }) =>
+  mensajeBase(e, "No pudimos publicar el turno. Intenta de nuevo.");
 
 const textoOpcional = (s: string) => s.trim() || null;
 

@@ -15,7 +15,7 @@ export async function obtenerRol(supabase: SupabaseClient): Promise<Rol | null> 
 /** Pantalla de inicio de cada rol después de ingresar. */
 export function inicioSegunRol(rol: Rol | null): string {
   if (rol === "empresa") return "/empresa/publicar";
-  // El trabajador aún no tiene pantalla propia: vuelve al inicio hasta que exista.
+  if (rol === "trabajador") return "/trabajos";
   return "/";
 }
 

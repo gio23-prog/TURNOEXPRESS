@@ -1,19 +1,24 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, supabaseConfigurado } from "@/lib/supabase/server";
 import { obtenerRol, type Rol } from "@/lib/supabase/perfil";
 import { salir } from "@/app/auth/actions";
 import { LogoSinEslogan } from "./Logo";
 import MenuMovil, { type Enlace } from "./MenuMovil";
 
-// Solo se enlazan pantallas que existen. Las del trabajador se agregarán en su fase.
+// Solo se enlazan pantallas que existen.
 function enlacesPara(rol: Rol | null): Enlace[] {
   if (rol === "empresa") return [{ href: "/empresa/publicar", texto: "Publicar turno" }];
-  return [];
+  if (rol === "trabajador")
+    return [
+      { href: "/trabajos", texto: "Buscar turnos" },
+      { href: "/trabajador/postulaciones", texto: "Mis postulaciones" },
+    ];
+  return [{ href: "/trabajos", texto: "Buscar turnos" }];
 }
 
 async function rolActual(): Promise<Rol | null> {
   // Sin variables de Supabase (p. ej. un build local sin .env) se muestra como visitante.
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) return null;
+  if (!supabaseConfigurado()) return null;
   return obtenerRol(await createClient());
 }
 

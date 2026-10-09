@@ -34,3 +34,11 @@ Proyecto Next.js, identidad visual, registro/ingreso con selección de rol, perf
 - Logos en `public/logo/` (originales recortados con márgenes uniformes; `logo-sin-eslogan.png` regenerado desde `logo-completo.png` porque el entregado venía cortado abajo; íconos cuadrados desde `icon-512.png`). `app/favicon.ico`, íconos PNG y `app/manifest.ts`.
 - Paleta en `app/globals.css` (`@theme`): marino #0F172A, turquesa #0D9488 (acentos), turquesa-oscuro #0F766E (botones y enlaces, contraste AA). Fondo blanco fijo.
 - Encabezado con menú móvil (`components/`); ingreso y registro con logo completo. Páginas con encabezado en el grupo `app/(sitio)/` (las URL no cambian).
+
+## Pantallas del trabajador (09/10/2026)
+- `/trabajos` (público): buscador con `search_jobs` (categoría, comuna, cuándo/duración, texto, valor hora mínimo, urgentes, orden, páginas de 20). Sin filtro de distancia ni "proyecto" (coordenadas de comunas pendientes).
+- `/trabajos/[id]` (con sesión): solo columnas públicas de `job_posts`, empresa desde `v_public_businesses`, requisitos, aviso de choque (`my_overlapping_bookings`) y postulación con `apply_to_job`.
+- `/trabajador/postulaciones`: lista propia y retiro con `withdraw_application`.
+- Inicio del trabajador tras ingresar: `/trabajos`. Sin cambios de esquema ni RLS.
+- Probado en local con PostgREST + sesión simulada: buscar y filtrar, postular (validación de disponibilidad), ver estado, retirar, redirecciones por rol.
+- Pendiente: responder ofertas (`respond_offer`), perfil editable del trabajador, lado empresa de postulaciones.
